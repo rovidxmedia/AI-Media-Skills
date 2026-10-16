@@ -15,6 +15,7 @@ import unittest
 
 import numpy as np
 import soundfile as sf
+from scipy import signal
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "podcast-audio-repair"
@@ -71,7 +72,75 @@ class RepairIntegrationTests(unittest.TestCase):
         self.assertLess(float(np.max(np.abs(audio))), 1)
         self.assertLessEqual(report["after"]["input_tp"], -1.0)
         self.assertTrue((dest / "comparison.mp3").is_file())
+        self.assertTrue((dest / "comparison-actual-volume.mp3").is_file())
         return report
+
+    def peak_fixture(self):
+        source, rate, _ = self.fixture(stereo=True)
+        audio, _ = sf.read(source, always_2d=True)
+        audio[rate:rate + 8] = [0.85, 0.7]
+        sf.write(source, audio, rate, subtype="PCM_24")
+        return source, rate
+
+    def test_speech_master_meets_target_and_preserves_preview_levels(self):
+        source, rate = self.peak_fixture()
+        dest = self.folder / "speech"
+        result = self.execute(source, dest)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = self.check_export(dest, 2, 3 * rate)
+        self.assertTrue(report["loudness_goal"]["target_met"])
+        self.assertAlmostEqual(report["after"]["input_i"], -16, delta=0.3)
+        self.assertLessEqual(report["after"]["input_tp"], -1.5)
+        self.assertTrue(any("peak limiting" in item["algorithm"]
+                            for item in report["operations"]))
+        original, _ = sf.read(dest / "input.wav", start=round(0.2 * rate),
+                              frames=rate, always_2d=True)
+        repaired, _ = sf.read(dest / "repaired.wav", start=round(0.2 * rate),
+                              frames=rate, always_2d=True)
+        preview, _ = sf.read(dest / "comparison-actual-volume.wav", always_2d=True)
+        np.testing.assert_array_equal(preview[:rate], original)
+        np.testing.assert_array_equal(preview[rate + round(0.75 * rate):], repaired)
+        a, _ = sf.read(dest / "input.wav", always_2d=True)
+        b, _ = sf.read(dest / "repaired.wav", always_2d=True)
+        correlation = signal.correlate(b[:, 0], a[:, 0], method="fft")
+        lags = signal.correlation_lags(len(b), len(a))
+        near = np.abs(lags) <= 480
+        self.assertEqual(int(lags[near][np.argmax(correlation[near])]), 0)
+
+    def test_preserve_mode_reports_peak_constrained_target_miss(self):
+        source, _ = self.peak_fixture()
+        dest = self.folder / "preserve"
+        result = self.execute(source, dest, "--loudness-mode", "preserve")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads((dest / "report.json").read_text())
+        self.assertFalse(report["loudness_goal"]["target_met"])
+        self.assertIn("target_not_met", report["status"])
+        self.assertTrue(report["source_unchanged"])
+        self.assertFalse(any("peak limiting" in item["algorithm"]
+                             for item in report["operations"]))
+
+    def test_neural_partial_frame_keeps_exact_duration(self):
+        source, rate, _ = self.fixture(stereo=True)
+        dest = self.folder / "partial-frame"
+        result = self.execute(source, dest, "--denoise", "neural", "--seconds", "3.007")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = self.check_export(dest, 2, round(3.007 * rate))
+        latency = report["denoise_latency_compensation"]
+        self.assertGreaterEqual(latency["denoiser_extra_frame_samples"], 0)
+        self.assertLess(latency["denoiser_extra_frame_samples"], 480)
+        self.assertTrue(latency["partial_final_frame_handled"])
+
+    def test_silence_is_not_a_successful_loudness_repair(self):
+        source = self.folder / "silence.wav"
+        sf.write(source, np.zeros((48000 * 3, 2)), 48000, subtype="PCM_24")
+        before = digest(source)
+        dest = self.folder / "silent-run"
+        result = self.execute(source, dest)
+        self.assertNotEqual(result.returncode, 0)
+        report = json.loads((dest / "report.json").read_text())
+        self.assertEqual(report["status"], "failed")
+        self.assertIn("unmeasurable", report["error"])
+        self.assertEqual(digest(source), before)
 
     def test_mono_spectral_export_and_original_preserved(self):
         source, rate, _ = self.fixture()

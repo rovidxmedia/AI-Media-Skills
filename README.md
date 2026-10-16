@@ -168,6 +168,12 @@ python skills/podcast-audio-repair/scripts/repair_audio.py "recording.wav" "runs
 # Uneven speech levels, without denoising.
 python skills/podcast-audio-repair/scripts/repair_audio.py "recording.wav" "runs/levels-01" --level
 
+# Low volume: meet the selected speech loudness with peak limiting when needed.
+python skills/podcast-audio-repair/scripts/repair_audio.py "recording.wav" "runs/loudness-01" --loudness-mode speech --target-lufs -16
+
+# Retain the original dynamics using constant gain only; may remain quieter.
+python skills/podcast-audio-repair/scripts/repair_audio.py "recording.wav" "runs/preserve-01" --loudness-mode preserve
+
 # Experimental echo treatment: listen carefully before keeping it.
 python skills/podcast-audio-repair/scripts/repair_audio.py "recording.wav" "runs/echo-01" --dereverb
 
@@ -177,6 +183,8 @@ python skills/podcast-audio-repair/scripts/repair_audio.py "recording.wav" "runs
 
 On Windows, replace `python` with `.\.venv\Scripts\python.exe`. Each output directory must be new. Denoising is **off by default**; select a treatment deliberately. Use `--start` to choose a troublesome passage and `--audio-stream` to select an audio stream in a video or multi-stream file. With `--full --start N`, processing begins at N seconds and continues to the end.
 
+The default `--loudness-mode speech` aims for **-16 LUFS**, a configurable export target rather than a universal platform requirement. When constant gain cannot reach it safely, the helper uses explicit oversampled lookahead peak limiting, then verifies the rendered loudness within 0.3 LU and checks true peaks. This changes peak dynamics; review the sound. Use `--loudness-mode preserve` for constant gain only. That alternative can miss the target, and its report marks the target as unmet.
+
 ## What you get
 
 | Output | Purpose |
@@ -184,11 +192,12 @@ On Windows, replace `python` with `.\.venv\Scripts\python.exe`. Each output dire
 | `input.wav` | Extracted sample or selected full audio stream; the original source stays where it was |
 | `repaired.wav` | Processed 48 kHz, 24-bit WAV |
 | `input-matched.wav`, `output-matched.wav` | Constant-gain loudness-matched files for comparison |
-| `comparison.mp3`, `comparison.wav` | Original excerpt, 0.75-second pause, then treated excerpt; 10 seconds each by default |
+| `comparison.mp3`, `comparison.wav` | Loudness-matched original excerpt, 0.75-second pause, then matched treated excerpt; 10 seconds each by default |
+| `comparison-actual-volume.mp3`, `comparison-actual-volume.wav` | Original and treated excerpts at their actual export levels, with the same pause and order |
 | `report.json` | Commands, settings, measurements, source hashes, warnings, and listening-review status |
 | Numbered intermediates | Processing stages retained for diagnosis |
 
-Use the full matched WAV pair for a longer review. Loudness matching helps compare noise treatments; also compare the un-matched files when assessing intended level changes.
+Use the actual-volume preview to assess the intended volume increase. Use the matched preview or full matched WAV pair to assess noise and voice changes without most of the loudness bias. Full-episode matching does not guarantee equal loudness in every excerpt after speech leveling.
 
 ## What it can—and cannot—do
 
@@ -199,7 +208,7 @@ Use the full matched WAV pair for a longer review. Loudness matching helps compa
 - **Listening:** technical checks are not a quality verdict. Check words, breaths, quiet speech, pauses, and naturalness yourself.
 - **Cost and setup:** this avoids an additional hosted audio service, not every possible cost. Agent access, dependencies, disk space, and processing time still matter.
 
-Mono and stereo input are supported. Multichannel input is rejected rather than silently downmixed. Long recordings use substantially more memory and disk than samples. A requested loudness target may be limited by available peak headroom; the report records the achieved result.
+Mono and stereo input are supported. Multichannel input is rejected rather than silently downmixed. Long recordings use more disk than samples. Speech mode verifies the selected loudness target; preserve mode can remain below it when peak headroom is limited. The report records the achieved loudness and whether the target was met. Neural processing can pad a partial final frame; the helper bounds that padding, measures latency, and retains the exact original frame count.
 
 The original development used controlled examples with added impairments and a second-clip revision. It did not establish a universal preset or a professional mastering guarantee. See [processing provenance and observed limits](skills/podcast-audio-repair/references/processing.md).
 

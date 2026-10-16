@@ -55,39 +55,50 @@ def measure(path, report):
     return {k: float(v) if k != "normalization_type" else v for k, v in values.items()}
 
 
-def align_denoised(raw_path, enhanced_path, output_path):
-    raw, sr = sf.read(raw_path, always_2d=True)
-    enhanced, out_sr = sf.read(enhanced_path, always_2d=True)
-    if sr != out_sr or raw.shape != enhanced.shape:
-        raise RuntimeError("Denoiser output shape changed unexpectedly")
-    if not np.isfinite(enhanced).all() or np.max(np.abs(enhanced)) >= 0.999999:
-        raise RuntimeError("Denoised intermediate may have clipped; lower the working input gain before retrying")
-    # RNNoise in the tested FFmpeg build adds 480 samples at 48 kHz. Measure
-    # rather than assuming the delay across builds, models, or sample content.
-    count = min(len(raw), 12 * sr)
-    x = raw[:count].mean(axis=1)
-    y = enhanced[:count].mean(axis=1)
-    corr = signal.correlate(y, x, mode="full", method="fft")
-    lags = signal.correlation_lags(len(y), len(x))
-    valid = np.abs(lags) <= int(0.040 * sr)
-    lag = int(lags[valid][np.argmax(corr[valid])])
-    if lag > 0:
-        aa, bb = x[:-lag], y[lag:]
-    elif lag < 0:
-        aa, bb = x[-lag:], y[:lag]
-    else:
-        aa, bb = x, y
-    confidence = float(np.dot(aa, bb) / max(np.linalg.norm(aa) * np.linalg.norm(bb), 1e-20))
-    if confidence < 0.35:
-        raise RuntimeError("Cannot establish denoiser latency confidently; preserve the intermediate and review timing manually")
-    if lag > 0:
-        fixed = np.pad(enhanced[lag:], ((0, lag), (0, 0)))
-    elif lag < 0:
-        fixed = np.pad(enhanced[:lag], ((-lag, 0), (0, 0)))
-    else:
-        fixed = enhanced
-    sf.write(output_path, fixed, sr, subtype="FLOAT")
-    return {"samples": lag, "seconds": lag / sr, "correlation": confidence, "edge_padding_samples": abs(lag)}
+def align_denoised(raw_path, enhanced_path, output_path, max_extra_samples=0):
+    # FFmpeg boundary handling: arnndn rounds a partial final 480-sample frame upward.
+    # Accept at most one frame of padding, measure latency, then retain exactly
+    # the original frame count. Stream the full file to avoid large allocations.
+    with sf.SoundFile(raw_path) as raw, sf.SoundFile(enhanced_path) as enhanced:
+        sr = raw.samplerate
+        difference = enhanced.frames - raw.frames
+        if sr != enhanced.samplerate or raw.channels != enhanced.channels or not (0 <= difference <= max_extra_samples):
+            raise RuntimeError("Unexpected denoiser format or frame-count change")
+        n = raw.frames
+        channels = raw.channels
+        x = raw.read(min(n, 12 * sr), always_2d=True).mean(axis=1)
+        y = enhanced.read(len(x), always_2d=True).mean(axis=1)
+        corr = signal.correlate(y, x, mode="full", method="fft")
+        lags = signal.correlation_lags(len(y), len(x))
+        valid = np.abs(lags) <= int(0.040 * sr)
+        lag = int(lags[valid][np.argmax(corr[valid])])
+        if lag > 0:
+            aa, bb = x[:-lag], y[lag:]
+        elif lag < 0:
+            aa, bb = x[-lag:], y[:lag]
+        else:
+            aa, bb = x, y
+        confidence = float(np.dot(aa, bb) / max(np.linalg.norm(aa) * np.linalg.norm(bb), 1e-20))
+        if confidence < 0.35:
+            raise RuntimeError("Cannot establish denoiser latency confidently")
+        enhanced.seek(max(0, lag))
+        written = 0
+        with sf.SoundFile(output_path, mode="w", samplerate=sr, channels=channels, subtype="FLOAT") as dest:
+            if lag < 0:
+                dest.write(np.zeros((-lag, channels)))
+                written = -lag
+            while written < n:
+                block = enhanced.read(min(480000, n - written), always_2d=True)
+                if not len(block):
+                    break
+                if not np.isfinite(block).all() or np.max(np.abs(block)) >= 0.999999:
+                    raise RuntimeError("Denoised intermediate is non-finite or may have clipped")
+                dest.write(block)
+                written += len(block)
+            padding = n - written
+            if padding:
+                dest.write(np.zeros((padding, channels)))
+    return {"samples": lag, "seconds": lag / sr, "correlation": confidence, "edge_padding_samples": padding, "denoiser_extra_frame_samples": difference, "output_frames": n, "partial_final_frame_handled": True}
 
 
 def dereverberate(source, dest, strength, taps, iterations):
@@ -126,14 +137,69 @@ def comparisons(before, after, before_stats, after_stats, out, report, seconds, 
     for source, stats, name in ((before, before_stats, "input-matched.wav"), (after, after_stats, "output-matched.wav")):
         gain = target - stats["input_i"]
         ffmpeg(["-i", source, "-af", f"volume={gain:.6f}dB", "-c:a", "pcm_s24le", out / name], report)
-    a, sr = sf.read(out / "input-matched.wav", always_2d=True)
-    b, _ = sf.read(out / "output-matched.wav", always_2d=True)
-    offset, n = int(start * sr), int(seconds * sr)
-    a, b = a[offset:offset+n], b[offset:offset+n]
+    info = sf.info(before)
+    sr = info.samplerate
+    offset, n = round(start * sr), round(seconds * sr)
+    with sf.SoundFile(out / "input-matched.wav") as source:
+        source.seek(offset)
+        a = source.read(n, always_2d=True)
+    with sf.SoundFile(out / "output-matched.wav") as source:
+        source.seek(offset)
+        b = source.read(n, always_2d=True)
     gap = np.zeros((int(0.75 * sr), a.shape[1]))
     sf.write(out / "comparison.wav", np.concatenate([a, gap, b]), sr, subtype="PCM_24")
     ffmpeg(["-i", out / "comparison.wav", "-c:a", "libmp3lame", "-b:a", "160k", out / "comparison.mp3"], report)
-    return {"order": "input, 0.75 seconds silence, output", "excerpt_start_seconds": start, "excerpt_seconds_each": len(a) / sr, "whole_file_match_target_lufs": target, "matching": "constant gain using integrated loudness; not a perceptual quality verdict"}
+    # A matched preview answers a different question from actual export volume.
+    actual = []
+    for source in (before, after):
+        with sf.SoundFile(source) as stream:
+            stream.seek(offset)
+            actual.append(stream.read(n, always_2d=True))
+    sf.write(out / "comparison-actual-volume.wav", np.concatenate([actual[0], gap, actual[1]]), sr, subtype="PCM_24")
+    ffmpeg(["-i", out / "comparison-actual-volume.wav", "-c:a", "libmp3lame", "-b:a", "160k", out / "comparison-actual-volume.mp3"], report)
+    return {"actual_volume_preview": "comparison-actual-volume.mp3", "matched_preview": "comparison.mp3", "order": "input, 0.75 seconds silence, output", "excerpt_start_seconds": start, "excerpt_seconds_each": len(a) / sr, "whole_file_match_target_lufs": target, "matching": "constant gain using integrated loudness; not a perceptual quality verdict"}
+
+
+def export_loudness(source, output, target, mode, report, stats=None):
+    """Meet speech loudness with explicit peak limiting; preserve mode is gain only."""
+    stats = stats if stats is not None else measure(source, report)
+    if not all(math.isfinite(stats[k]) for k in ("input_i", "input_tp", "input_lra", "input_thresh")):
+        raise RuntimeError("Silent or unmeasurable sample; no loudness export produced")
+    desired_gain = target - stats["input_i"]
+    safe_gain = min(desired_gain, -1.6 - stats["input_tp"])
+    limited = safe_gain < desired_gain - 0.01
+    if mode == "preserve" or not limited:
+        ffmpeg(["-i", source, "-af", f"volume={safe_gain:.8f}dB", "-ar", 48000, "-c:a", "pcm_s24le", output], report)
+        measured = measure(output, report)
+        report["operations"].append({"algorithm": "Measured constant gain", "mode": mode, "gain_db": safe_gain, "target_limited_by_peak_headroom": limited})
+    else:
+        # Fixed gain does not ride up in pauses. Oversampled lookahead limiting
+        # controls peaks that otherwise block the chosen integrated loudness.
+        operation = {"algorithm": "Constant gain plus oversampled lookahead peak limiting", "mode": mode, "internal_ceiling_dbfs": -1.8, "oversampling_rate": 192000, "attack_ms": 5, "release_ms": 100, "latency_compensated": True, "attempts": []}
+        report["operations"].append(operation)
+        gain = desired_gain
+        ceiling = 10 ** (-1.8 / 20)
+        for attempt in range(1, 4):
+            candidate = output.parent / f"05-master-pass-{attempt}.wav"
+            effect = f"aresample=192000,volume={gain:.8f}dB,alimiter=limit={ceiling:.10f}:attack=5:release=100:level=false:latency=true,aresample=48000"
+            ffmpeg(["-i", source, "-af", effect, "-c:a", "pcm_s24le", candidate], report)
+            measured = measure(candidate, report)
+            operation["attempts"].append({"gain_db": gain, "filter": effect, "measurements": measured, "candidate": candidate.name})
+            error = target - measured["input_i"]
+            if abs(error) <= 0.3 and measured["input_tp"] <= -1.5:
+                shutil.copyfile(candidate, output)
+                break
+            if measured["input_tp"] > -1.5:
+                ceiling *= 10 ** ((-1.7 - measured["input_tp"]) / 20)
+            gain += error
+        else:
+            raise RuntimeError("Speech mastering did not meet loudness/peak criteria in three attempts; review the preserved candidates")
+    report["loudness_goal"] = {"mode": mode, "target_lufs": target, "achieved_lufs": measured["input_i"], "tolerance_lu": 0.3, "target_met": abs(measured["input_i"] - target) <= 0.3, "true_peak_db": measured["input_tp"]}
+    if mode == "speech" and not report["loudness_goal"]["target_met"]:
+        raise RuntimeError("Speech export missed the requested loudness target")
+    if mode == "preserve" and not report["loudness_goal"]["target_met"]:
+        report["warnings"].append("Preserve mode could not meet the loudness target without peak limiting; this is a quieter dynamics-preserving alternative")
+    return measured
 
 
 def main():
@@ -153,6 +219,7 @@ def main():
     parser.add_argument("--wpe-taps", type=int, default=16)
     parser.add_argument("--wpe-iterations", type=int, default=3)
     parser.add_argument("--level", action="store_true")
+    parser.add_argument("--loudness-mode", choices=("speech", "preserve"), default="speech", help="Speech meets the target with peak limiting when needed; preserve uses constant gain only")
     parser.add_argument("--target-lufs", type=float, default=-16, help="Chosen export target, not a universal platform requirement")
     parser.add_argument("--comparison-seconds", type=float, default=10)
     parser.add_argument("--comparison-start", type=float, default=1)
@@ -213,7 +280,7 @@ def main():
                 operation = {"algorithm": "FFmpeg afftdn; conventional spectral noise reduction", "filter": effect}
             ffmpeg(["-i", current, "-af", effect, "-c:a", "pcm_s24le", neural], report)
             aligned = out / "02-denoise-aligned.wav"
-            report["denoise_latency_compensation"] = align_denoised(current, neural, aligned)
+            report["denoise_latency_compensation"] = align_denoised(current, neural, aligned, max_extra_samples=479 if args.denoise == "neural" else 0)
             report["operations"].append(operation)
             report["warnings"].append("Denoiser latency compensation trims/pads an edge; check the first/last spoken sounds. The untouched original remains available.")
             current = aligned
@@ -228,38 +295,27 @@ def main():
             ffmpeg(["-i", current, "-af", effect, "-c:a", "pcm_f32le", dest], report)
             report["operations"].append({"algorithm": "FFmpeg dynaudnorm; conventional dynamic leveling", "filter": effect})
             current = dest
-        stats = measure(current, report)
-        if not all(math.isfinite(stats[k]) for k in ("input_i", "input_tp", "input_lra", "input_thresh")):
-            raise RuntimeError("Silent or unmeasurable sample; no loudness repair produced")
-        # A dynamic loudnorm fallback raised quiet residual noise in the first
-        # controlled tests. Use constant gain with peak headroom instead. If
-        # both requested loudness and the peak ceiling cannot be met, preserve
-        # dynamics and report the lower achieved loudness honestly.
-        requested_gain = args.target_lufs - stats["input_i"]
-        gain = min(requested_gain, -1.6 - stats["input_tp"])
-        effect = f"volume={gain:.8f}dB"
         final = out / "repaired.wav"
-        ffmpeg(["-i", current, "-af", effect, "-ar", 48000, "-c:a", "pcm_s24le", final], report)
-        report["operations"].append({"algorithm": "Measured constant gain; conventional export normalization", "requested_target_lufs": args.target_lufs, "true_peak_ceiling_db": -1.6, "gain_db": gain, "target_limited_by_peak_headroom": gain < requested_gain - 0.01})
-        if gain < requested_gain - 0.01:
-            report["warnings"].append("Peak headroom limits the export below requested loudness. Dynamics were preserved; do not claim the target was achieved.")
         report["before"] = measure(sample, report)
-        report["after"] = measure(final, report)
-        audio, sr = sf.read(final, always_2d=True)
-        original, _ = sf.read(sample, always_2d=True)
-        if not np.isfinite(audio).all() or audio.shape != original.shape or np.max(np.abs(audio)) >= 1:
-            raise RuntimeError("Export failed shape, finite-sample, or clipping checks")
+        report["after"] = export_loudness(current, final, args.target_lufs, args.loudness_mode, report)
+        info, original_info = sf.info(final), sf.info(sample)
+        if (info.samplerate, info.channels, info.frames) != (original_info.samplerate, original_info.channels, original_info.frames):
+            raise RuntimeError("Export changed sample rate, channel count, or frame count")
+        for block in sf.blocks(final, blocksize=480000, always_2d=True):
+            if not np.isfinite(block).all() or np.max(np.abs(block)) >= 1:
+                raise RuntimeError("Export contains clipped or non-finite samples")
+        duration = info.duration
         if report["after"]["input_tp"] > -1.0:
             raise RuntimeError("Export true peak exceeds the verification ceiling")
-        if args.comparison_start >= len(audio) / sr:
+        if args.comparison_start >= duration:
             raise RuntimeError("Comparison start lies outside the sample")
         report["comparison"] = comparisons(sample, final, report["before"], report["after"], out, report, args.comparison_seconds, args.comparison_start)
         report["source_sha256_after"] = sha256(source)
         if report["source_sha256_before"] != report["source_sha256_after"]:
             raise RuntimeError("Source file changed during processing")
         report["source_unchanged"] = True
-        report["duration_seconds"] = len(audio) / sr
-        report["status"] = "technical_checks_passed_listening_pending"
+        report["duration_seconds"] = duration
+        report["status"] = "technical_checks_passed_listening_pending" if report["loudness_goal"]["target_met"] else "technical_checks_passed_target_not_met_listening_pending"
     except Exception as exc:
         report["status"] = "failed"
         report["error"] = str(exc)

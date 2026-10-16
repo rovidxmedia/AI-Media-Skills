@@ -6,6 +6,76 @@ A growing collection of practical skills for Codex, Claude Code, and other agent
 
 Created and maintained by [Rovidx](https://www.rovidx.com/).
 
+## Quickstart: let your agent set it up
+
+Open your podcast project or a working folder in **Codex, Claude Code, Cursor Agent, Antigravity, or GitHub Copilot's local agent mode in VS Code**. Use a session that can read/write local files and run terminal commands.
+
+### 1. Paste this setup prompt
+
+The same prompt works across these environments; the agent uses the table below to choose its installation location.
+
+```text
+Install the podcast-audio-repair skill from:
+https://github.com/rovidxmedia/AI-Media-Skills
+
+Fetch the repository into a separate local folder, preserving any existing checkout.
+Read its README, skills/podcast-audio-repair/SKILL.md, and helper script before running it.
+
+Use the README's documented skill-location table to install the complete
+skills/podcast-audio-repair folder for the agent I am currently using in this
+workspace. Choose the project location, not a global installation. Preserve all
+scripts, references, licenses, and assets. Do not overwrite an existing skill;
+inspect it and explain any conflict first.
+
+Check Python, FFmpeg, ffprobe, and the required audio filters. Set up an isolated
+Python environment and install the skill's requirements.txt there. If a required
+system tool is missing, explain what I need to install.
+
+Run the installed helper with --help using that environment's Python. Confirm the
+bundled model and supporting files exist. Report the skill location, Python
+executable, and any missing requirements or session reload needed. Distinguish
+files installed successfully from the agent actually discovering the skill.
+
+Do not process any recordings yet.
+```
+
+### 2. Paste your first repair request
+
+Replace the recording path, and describe the problem if you know it. This plain-language prompt avoids environment-specific slash commands.
+
+```text
+Use the installed podcast-audio-repair skill on:
+"<full path to my recording>"
+
+Use the Python environment prepared during setup. Start with a 30-second sample
+containing the problem. Reduce background noise conservatively and preserve my
+words, timing, and natural voice. Keep the original untouched and write to a new
+output folder.
+
+Give me the original/treated comparison, repaired WAV, settings report, and any
+limitations. Let me review the sample before processing the whole recording.
+```
+
+### Documented skill locations
+
+Each path below is the **parent directory**; install the whole `podcast-audio-repair/` folder inside it. The setup prompt uses project scope so the installation stays with the current workspace.
+
+| Environment | Project location used by the prompt | Optional personal/global location | Official documentation |
+| --- | --- | --- | --- |
+| Codex | `.agents/skills/` | `~/.agents/skills/` | [Codex skills](https://developers.openai.com/codex/skills/) |
+| Claude Code | `.claude/skills/` | `~/.claude/skills/` | [Claude Code skills](https://code.claude.com/docs/en/skills) |
+| Cursor Agent | `.agents/skills/` (also supports `.cursor/skills/`) | `~/.agents/skills/` or `~/.cursor/skills/` | [Cursor Agent Skills](https://cursor.com/docs/skills) |
+| Antigravity App / IDE / CLI | `.agents/skills/` | App / IDE: `~/.gemini/config/skills/`; CLI: `~/.gemini/antigravity-cli/skills/` | [Antigravity skills by surface](https://antigravity.google/docs/skills) |
+| GitHub Copilot in VS Code | `.agents/skills/` (also supports `.github/skills/`) | `~/.agents/skills/` or `~/.copilot/skills/` | [VS Code Agent Skills](https://code.visualstudio.com/docs/agent-customization/agent-skills) |
+
+**Choose the agent, not just the editor or model name.** For example, a Codex extension running inside Cursor still uses Codex's discovery rules. If the agent cannot identify its host, tell it which one you are using.
+
+These prompts target local agent sessions. Browser-only chat and remote/cloud agents need different access and setup; a cloud session cannot automatically use recordings on your computer. Other local agents can follow the workflow if they support skill folders and command execution, using their own documented locations.
+
+Locations were checked against official documentation on October 16, 2026. The audio helper was exercised through Codex; installation and skill discovery have not been tested end to end in every listed product.
+
+Prefer manual setup? Continue with the [step-by-step instructions](#start-here-fix-a-short-podcast-sample) below.
+
 ## Available skills
 
 | Skill | What it does | Included |
@@ -53,10 +123,7 @@ If your Python launcher uses a different version, select the interpreter you ins
 
 For a first try, ask your agent to read `skills/podcast-audio-repair/SKILL.md` directly from this clone. To make it discoverable across projects, copy the **whole skill folder**, including its scripts and assets:
 
-| Agent | Personal installation | Project installation |
-| --- | --- | --- |
-| Codex | `~/.agents/skills/podcast-audio-repair/` | `.agents/skills/podcast-audio-repair/` |
-| Claude Code | `~/.claude/skills/podcast-audio-repair/` | `.claude/skills/podcast-audio-repair/` |
+Use the [documented skill locations](#documented-skill-locations) above for Codex, Claude Code, Cursor, Antigravity, and Copilot. Copy the folder into the selected parent directory; copying just `SKILL.md` leaves out required code and assets.
 
 For example, from the repository root:
 
@@ -83,17 +150,7 @@ Reload or start a new agent session if the skill does not appear. Use the locati
 
 ### 3. Ask for a repair you can judge
 
-In Codex, invoke `$podcast-audio-repair`; in Claude Code, use `/podcast-audio-repair`. Then give it a concrete task:
-
-```text
-Use podcast-audio-repair on my recording at <input-file>.
-Inspect the available tools and use Python from <virtual-environment>.
-Start with 30 seconds containing the problem.
-Reduce the background noise without changing my words or vocal character.
-Keep my source untouched and use a new output folder.
-Give me the original/treated comparison, repaired WAV, and settings report.
-Ask me to review the sound before processing the whole recording.
-```
+Use the shared [first repair request](#2-paste-your-first-repair-request) above. You can also explicitly select the skill: in Codex, use `$podcast-audio-repair`; in Claude Code or Cursor, select `/podcast-audio-repair` from the skill menu. Antigravity App / CLI also document slash-command invocation. Plain-language requests work without making these shortcuts part of the shared prompt.
 
 If the result damages quieter words or sounds unnatural, ask for a gentler treatment. Test the saved approach on a second clip rather than assuming one preset works everywhere.
 

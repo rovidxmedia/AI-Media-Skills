@@ -1,0 +1,30 @@
+# Python and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+
+# Credentials and local settings
+.env
+.env.*
+!.env.example
+
+# Media and generated repair jobs
+runs/
+work/
+outputs/
+*.wav
+*.mp3
+*.flac
+*.m4a
+*.mp4
+*.mkv
+report.json
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

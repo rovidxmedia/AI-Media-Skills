@@ -6,6 +6,8 @@ A growing collection of practical skills for Codex, Claude Code, and other agent
 
 Created and maintained by [Rovidx](https://www.rovidx.com/).
 
+Start with [Podcast Audio Repair](#start-here-fix-a-short-podcast-sample) for noise and uneven or low levels. Use [That Radio Voice](#that-radio-voice) on clean or repaired speech for a fuller, denser broadcast-style treatment. The two skills can run in sequence.
+
 ## Quickstart: let your agent set it up
 
 Open your podcast project or a working folder in **Codex, Claude Code, Cursor Agent, Antigravity, or GitHub Copilot's local agent mode in VS Code**. Use a session that can read/write local files and run terminal commands.
@@ -58,7 +60,7 @@ limitations. Let me review the sample before processing the whole recording.
 
 ### Documented skill locations
 
-Each path below is the **parent directory**; install the whole `podcast-audio-repair/` folder inside it. The setup prompt uses project scope so the installation stays with the current workspace.
+Each path below is the **parent directory**; install each selected skill's whole folder inside it. The repair setup prompt installs `podcast-audio-repair/`. [That Radio Voice](#that-radio-voice) needs both skill folders side by side. These setup prompts use project scope so installation stays with the current workspace.
 
 | Environment | Project location used by the prompt | Optional personal/global location | Official documentation |
 | --- | --- | --- | --- |
@@ -81,8 +83,9 @@ Prefer manual setup? Continue with the [step-by-step instructions](#start-here-f
 | Skill | What it does | Included |
 | --- | --- | --- |
 | [Podcast Audio Repair](skills/podcast-audio-repair/SKILL.md) | Reduce background noise, even out speech levels, and cautiously test room-echo treatment | Local Python helper, RNNoise model, optional WPE code, comparison audio, and a settings report |
+| [That Radio Voice](skills/that-radio-voice/SKILL.md) | Give clean speech a fuller, denser radio sound with soft gating, EQ, compression, harmonic excitement, and peak-limited mastering | Big and Warm presets, local Python helper, WAV/MP3 exports, two comparison types, and a settings report; requires Podcast Audio Repair alongside it |
 
-This repository starts with one working skill. New media skills will get their own folders under `skills/` and an entry in this table when they are ready.
+Each capability has its own folder under `skills/`. New skills enter this catalog when they have a working, reviewable workflow.
 
 ## Start here: fix a short podcast sample
 
@@ -211,6 +214,104 @@ Use the actual-volume preview to assess the intended volume increase. Use the ma
 Mono and stereo input are supported. Multichannel input is rejected rather than silently downmixed. Long recordings use more disk than samples. Speech mode verifies the selected loudness target; preserve mode can remain below it when peak headroom is limited. The report records the achieved loudness and whether the target was met. Neural processing can pad a partial final frame; the helper bounds that padding, measures latency, and retains the exact original frame count.
 
 The original development used controlled examples with added impairments and a second-clip revision. It did not establish a universal preset or a professional mastering guarantee. See [processing provenance and observed limits](skills/podcast-audio-repair/references/processing.md).
+
+## That Radio Voice
+
+[That Radio Voice](skills/that-radio-voice/SKILL.md) gives recorded speech a deliberately produced radio character: more body and presence, denser dynamics, and upper harmonic excitement. It uses conventional local audio processing with FFmpeg. It keeps the speaker's pitch, words, timing, and mono/stereo layout.
+
+Use a clean or repaired WAV. Repair troublesome noise or room echo first; compression and excitement can emphasize problems that remain. A typical workflow is **recording → Podcast Audio Repair → repaired WAV → That Radio Voice**. This does not separate guests or overlapping voices already mixed into one track.
+
+### Set it up with your agent
+
+Paste this in a local agent session:
+
+```text
+Install That Radio Voice from:
+https://github.com/rovidxmedia/AI-Media-Skills
+
+Read the README and skills/that-radio-voice/SKILL.md. Install the complete
+skills/that-radio-voice and skills/podcast-audio-repair folders side by side in
+the project skill location documented for this agent. Keep their scripts,
+references, licenses, requirements, and assets. Inspect existing installations
+before replacing anything; check that the repair helper supports export_loudness.
+
+Use an isolated Python environment and install
+skills/podcast-audio-repair/requirements.txt. Check FFmpeg/ffprobe, MP3 encoding,
+and the radio helper's required filters. Run both helpers with --help and report
+their locations, the Python executable, and any missing dependencies or reload.
+Do not process a recording yet.
+```
+
+The radio helper shares loudness measurement, mastering, source hashing, and comparison generation with Podcast Audio Repair. Both folders must use the same parent skill directory:
+
+```text
+<agent skill directory>/
+  podcast-audio-repair/
+  that-radio-voice/
+```
+
+Use the [skill-location table](#documented-skill-locations) to choose that directory. For manual use from this repository, the folders are already in the right layout under `skills/`. The existing [dependency setup](#1-get-the-repository-and-dependencies) prepares Python for both helpers. Radio-specific filters include `agate`, `equalizer`, `acompressor`, `aexciter`, and `deesser`; mastering also uses `alimiter`, `aresample`, and `loudnorm`. A typical full FFmpeg build supplies these, but the helper checks availability. It encodes MP3 with `libmp3lame`.
+
+If the repair helper lives elsewhere, pass `--repair-helper "<path to repair_audio.py>"`. Copying only the radio skill's `SKILL.md` leaves out its processor and does not supply its dependency.
+
+### Ask for the sound
+
+```text
+Use the installed That Radio Voice skill on:
+"<full path to my repaired.wav>"
+
+Use the prepared Python environment. Make a 30-second sample with the Big preset,
+including soft words, breaths, sibilants, and pauses. Preserve the source, words,
+timing, and channels. Give me the radio WAV and MP3, a loudness-matched comparison
+for judging tone, an actual-volume comparison, and the settings report.
+Let me review the sample before processing the full recording.
+```
+
+In Codex you can explicitly select `$that-radio-voice`; the plain-language request above also works with other local agents that have discovered the skill.
+
+| Preset | Starting character |
+| --- | --- |
+| `big` (default) | Stronger body and presence, 4:1 soft-knee compression, and more harmonic excitement |
+| `warm` | Lighter body/presence shaping, 2.5:1 compression, and gentler excitement |
+
+Both presets include rumble filtering, a soft gate with bounded attenuation, and light de-essing when the exciter is enabled. Default delivery targets **-14 LUFS**, verified within 0.3 LU with peak headroom. This is a configurable creative target, not a universal broadcasting requirement. Already compressed recordings may need the lighter preset. Technical checks do not establish that a voice sounds natural or that the effect suits it.
+
+### Run it directly
+
+From the repository root, using the prepared Python environment:
+
+```bash
+python skills/that-radio-voice/scripts/radio_voice.py --help
+
+# Compare a short passage with the prominent Big treatment.
+python skills/that-radio-voice/scripts/radio_voice.py "repaired.wav" "runs/radio-big-01" --preset big --start 60 --seconds 30
+
+# Try a gentler treatment on the same passage.
+python skills/that-radio-voice/scripts/radio_voice.py "repaired.wav" "runs/radio-warm-01" --preset warm --start 60 --seconds 30
+
+# Reduce bass weight and brightness while keeping the Big compressor.
+python skills/that-radio-voice/scripts/radio_voice.py "repaired.wav" "runs/radio-tuned-01" --preset big --body-db 2 --presence-db 1 --exciter-amount 0.8
+
+# After listening review, process the complete repaired recording.
+python skills/that-radio-voice/scripts/radio_voice.py "repaired.wav" "runs/radio-full-01" --preset big --full --target-lufs -14
+```
+
+On Windows, replace `python` with `.\.venv\Scripts\python.exe`. Each run directory must be new. `--full` explicitly selects full processing; with `--start N`, it processes from N seconds to the end. Files must contain exactly one mono or stereo audio stream.
+
+To reduce lost breaths or word endings, lower `--gate-threshold-db` (for example, `-55`), reduce `--gate-reduction-db`, or compare `--no-gate`. The default gate threshold is -50 dBFS **after input staging**, with at most 12 dB attenuation. For harsh brightness, lower `--exciter-amount` or `--presence-db`, or compare `--no-exciter`. For excessive density, reduce `--compression-ratio` or use Warm. `--target-lufs` accepts -20 through -12 LUFS. Judge these changes on a sample rather than stacking every control at once.
+
+### Radio outputs and review
+
+| Output | Purpose |
+| --- | --- |
+| `radio-voice.wav` | Full selected audio or sample, 48 kHz, 24-bit PCM, original mono/stereo layout |
+| `radio-voice.mp3` | 256 kb/s listening copy, measured and decoded for verification |
+| `comparison.mp3`, `comparison.wav` | Loudness-matched source first, 0.75-second pause, then radio processing; 20 seconds each by default |
+| `comparison-actual-volume.mp3`, `comparison-actual-volume.wav` | Same order and passage at their actual source/output levels |
+| `input.wav`, matched WAV pair, numbered intermediates | Preserved extraction and stages for longer review or diagnosis |
+| `report.json` | Exact filters, preset/overrides, stage-envelope measurements, loudness/peaks, dependency and source hashes, and listening status |
+
+Use the matched comparison to judge body, presence, and density without most of the volume bias. Use the actual-volume comparison to hear delivery level. Full-file matching does not make every phrase equally loud. Check gate chatter, soft words, breaths, S/SH sounds, pumping, and distortion before accepting a full run. If the agent cannot hear audio, listening approval stays pending. See the [processing reference](skills/that-radio-voice/references/processing.md) for the chain and its limits.
 
 ## Contribute a skill
 

@@ -1,0 +1,3 @@
+interface:
+  display_name: "That Radio Voice"
+  short_description: "Give recorded speech a big broadcast radio sound"

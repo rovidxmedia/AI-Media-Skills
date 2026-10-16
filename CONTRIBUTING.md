@@ -31,13 +31,13 @@ Do not add empty skill folders to advertise planned work. Add ready skills to th
 
 Exercise new or changed processing on a representative sample and a different clip. Explain what succeeded, what failed, and what still needs listening or visual review. Distinguish neural processing, conventional processing, measurements, and human judgments.
 
-For Podcast Audio Repair, run the integration checks from the repository root:
+For Podcast Audio Repair and That Radio Voice, run the integration checks from the repository root:
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-Install that skill's requirements and FFmpeg first. These synthetic-fixture checks verify execution and source/output handling; they do not establish good speech quality. The skill's processing reference records its original development environment.
+Install `skills/podcast-audio-repair/requirements.txt` and FFmpeg first; That Radio Voice shares those Python dependencies and requires the sibling repair helper. These synthetic-fixture checks verify execution and source/output handling; they do not establish good speech quality. Each skill's processing reference records its tested environment.
 
 ## Keep contributions safe to share
 

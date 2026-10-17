@@ -108,7 +108,9 @@ def doctor(cache):
     if result["tools"]["ffmpeg"]:
         result["ffmpeg_version"] = run(["ffmpeg", "-version"]).stdout.splitlines()[0]
         text = run(["ffmpeg", "-hide_banner", "-filters"]).stdout
-        result["filters"] = sorted(set(re.findall(r"^\s*[TSC.]{3}\s+(\w+)\s", text, re.M)))
+        # FFmpeg 9 removed the command-support flag column; identify real filter rows
+        # by their I/O signature instead of assuming a fixed number of flags.
+        result["filters"] = sorted(set(re.findall(r"^\s*[A-Z.]+\s+(\w+)\s+[AVN|]+->[AVN|]+\s", text, re.M)))
     result["ready_cpu"] = all(result["tools"].values()) and "scale" in result["filters"]
     result["note"] = "Installed is distinct from benchmarked. A successful sample establishes runtime compatibility."
     return result

@@ -20,6 +20,16 @@ import video_enhance as video
 
 
 class EngineUnitTests(unittest.TestCase):
+    def test_doctor_recognizes_ffmpeg_nine_two_column_filter_flags(self):
+        from types import SimpleNamespace
+        listing = "Filters:\n T.. = Timeline support\n T. scale             V->V       Scale frames\n TS hqdn3d            V->V       Denoise\n .. anull             A->A       Pass audio\n"
+        def invoke(command, **_):
+            return SimpleNamespace(stdout="ffmpeg version 9.0.2\n" if "-version" in command else listing)
+        with patch.object(video, "hardware", return_value={}), patch.object(video.shutil, "which", return_value="tool"), patch.object(video, "run", side_effect=invoke):
+            result = video.doctor("cache")
+        self.assertTrue(result["ready_cpu"])
+        self.assertEqual(result["filters"], ["anull", "hqdn3d", "scale"])
+
     def test_memory_retry_only_for_allocation_errors(self):
         attempts = []
         def allocate(size):

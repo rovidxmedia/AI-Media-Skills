@@ -366,7 +366,7 @@ Inspect `setup --engine realesrgan` or `setup --engine rife` before adding `--in
 
 Jobs contain inspection frames, a muted side-by-side comparison (original left, treated right), an enhanced excerpt with all audio, a review page, settings, benchmark estimates and checkpoints. MKV is the default to preserve audio codecs; MP4 is available for compatible tracks. Review face consistency, texture, text, motion, cuts, crop/borders and lip sync before accepting.
 
-Windows CPU behavior is locally exercised. macOS/Linux CPU checks are configured in GitHub Actions; other hardware needs its own successful sample. Consult the [compatibility and validation record](skills/video-enhance/references/validation.md) before relying on a GPU path. [Repair controls](skills/video-enhance/references/repairs.md) explain broader repairs and limits, including stabilization storage, HDR metadata and VFR conversion.
+Windows CPU behavior is locally exercised, and macOS/Linux CPU checks have passed in GitHub Actions. Other GPU hardware needs its own successful sample. Consult the [compatibility and validation record](skills/video-enhance/references/validation.md) before relying on a GPU path. [Repair controls](skills/video-enhance/references/repairs.md) explain broader repairs and limits, including stabilization storage, HDR metadata and VFR conversion.
 
 ## Contribute a skill
 

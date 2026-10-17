@@ -14,8 +14,8 @@ The video tests need only FFmpeg, ffprobe and Python. They generate redistributa
 | --- | --- |
 | Windows, Python 3.13, FFmpeg 7.0 | Local CPU integration checks, including preview, full render/resume, audio labels, fractional rate and portrait geometry |
 | Windows RTX A4500, NCNN/Vulkan | Real-ESRGAN and RIFE inference passed on private live-action footage, a degraded open movie excerpt, and the opt-in integration fixture |
-| macOS CPU | Automated test job configured; no native run recorded here |
-| Linux CPU | Automated test job configured; no native run recorded here |
+| macOS CPU | Native Apple Silicon GitHub Actions CPU tests passed with Python 3.12 and Homebrew FFmpeg 9; optional filters depend on the installed build |
+| Linux CPU | Native Ubuntu GitHub Actions CPU tests passed with Python 3.12 and distribution FFmpeg |
 | AMD/Intel Vulkan, Apple MoltenVK | Upstream candidates; no local GPU inference evidence |
 | SeedVR2 CUDA/MPS | No native inference run. Source/CLI contract inspected; memory retry and unavailable-GPU behavior exercised with controlled stubs. Install and sample-test before recommending it. |
 

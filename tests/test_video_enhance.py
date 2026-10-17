@@ -251,15 +251,16 @@ class VideoIntegrationTests(unittest.TestCase):
 
     def test_generated_interlaced_shaky_flickering_fixture(self):
         filters = set(video.doctor(self.base / "cache")["filters"])
-        if not {"vidstabdetect", "vidstabtransform"} <= filters:
-            self.skipTest("Optional stabilization unavailable")
+        repairs = "deinterlace,deflicker"
+        if {"vidstabdetect", "vidstabtransform"} <= filters:
+            repairs += ",stabilize"
         source = self.base / "interlaced-flicker.mkv"
         video.ffmpeg(["-f", "lavfi", "-i", "testsrc2=size=176x112:rate=24:duration=2",
-                      "-vf", "crop=160:96:x='8+4*sin(n)':y='8+4*cos(n)',eq=brightness='0.03*sin(n)':eval=frame,tinterlace=mode=interleave_top",
-                      "-an", "-c:v", "libx264", "-flags", "+ilme+ildct", "-top", "1", source])
+                      "-vf", "crop=160:96:x='8+4*sin(n)':y='8+4*cos(n)',eq=brightness='0.03*sin(n)':eval=frame,tinterlace=mode=interleave_top,setfield=tff",
+                      "-an", "-c:v", "libx264", "-flags", "+ilme+ildct", source])
         target = self.base / "actual-repairs-job"
         video.analyze(source, target, self.base / "cache")
-        args = self.args("--repairs", "deinterlace,deflicker,stabilize", "--field-order", "tff", "--fps", "24", "--starts", "0", "--seconds", "1.5")
+        args = self.args("--repairs", repairs, "--field-order", "tff", "--fps", "24", "--starts", "0", "--seconds", "1.5")
         args.job = target
         result = video.preview(args)
         self.assertEqual(result["samples"][0]["verification"]["frames"], 36)

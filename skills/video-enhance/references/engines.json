@@ -1,0 +1,13 @@
+{
+  "realesrgan": {
+    "windows": {"version": "20220424", "bytes": 45474481, "sha256": "abc02804e17982a3be33675e4d471e91ea374e65b70167abc09e31acb412802d", "url": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip"},
+    "ubuntu": {"version": "20220424", "bytes": 46931474, "sha256": "e5aa6eb131234b87c0c51f82b89390f5e3e642b7b70f2b9bbe95b6a285a40c96", "url": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-ubuntu.zip"},
+    "macos": {"version": "20220424", "bytes": 51817124, "sha256": "e0ad05580abfeb25f8d8fb55aaf7bedf552c375b5b4d9bd3c8d59764d2cc333a", "url": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-macos.zip"}
+  },
+  "rife": {
+    "windows": {"version": "20221029", "bytes": 431540241, "sha256": "d8e4d772d26cd8006ef0ad0bc82eb191b53c68677d1ae2f42506d74cbbbea606", "url": "https://github.com/nihui/rife-ncnn-vulkan/releases/download/20221029/rife-ncnn-vulkan-20221029-windows.zip"},
+    "ubuntu": {"version": "20221029", "bytes": 431302796, "sha256": "1e2c7ee7fa7daa326542d50622f0afedc80cf6f1858bda411d16385ffa5cdf68", "url": "https://github.com/nihui/rife-ncnn-vulkan/releases/download/20221029/rife-ncnn-vulkan-20221029-ubuntu.zip"},
+    "macos": {"version": "20221029", "bytes": 436537917, "sha256": "4a63a1f3c9c715773c57d2ee51df1b315ed20cd6c63103e45c483ecc4400b595", "url": "https://github.com/nihui/rife-ncnn-vulkan/releases/download/20221029/rife-ncnn-vulkan-20221029-macos.zip"}
+  },
+  "seedvr2": {"version": "4490bd1f482e026674543386bb2a4d176da245b9", "bytes": 4864981, "sha256": "04c61842bc00fd8673e6bc9a3b1b1935955461f363791070ed14d67d2a2e77fb", "url": "https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler/archive/4490bd1f482e026674543386bb2a4d176da245b9.zip"}
+}

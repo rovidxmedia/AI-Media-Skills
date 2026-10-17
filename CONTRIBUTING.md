@@ -39,6 +39,14 @@ python -m unittest discover -s tests -v
 
 Install `skills/podcast-audio-repair/requirements.txt` and FFmpeg first; That Radio Voice shares those Python dependencies and requires the sibling repair helper. These synthetic-fixture checks verify execution and source/output handling; they do not establish good speech quality. Each skill's processing reference records its tested environment.
 
+For Video Enhance, the CPU checks require only Python, FFmpeg and ffprobe:
+
+```bash
+python -m unittest discover -s tests -p "test_video_enhance.py" -v
+```
+
+Keep GPU downloads out of ordinary CPU CI. Record tested hardware, model/version, actual inference results and unverified platforms in its validation reference. Inspect a real comparison before claiming perceptual improvement.
+
 ## Keep contributions safe to share
 
 Only include media and code you can redistribute. Do not commit client recordings, credentials, generated job reports, personal machine paths, private contact details, caches, or virtual environments. For third-party assets, retain licenses, source links, and hashes where useful.

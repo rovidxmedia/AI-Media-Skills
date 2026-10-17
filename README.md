@@ -8,6 +8,8 @@ Created and maintained by [Rovidx](https://www.rovidx.com/).
 
 Start with [Podcast Audio Repair](#start-here-fix-a-short-podcast-sample) for noise and uneven or low levels. Use [That Radio Voice](#that-radio-voice) on clean or repaired speech for a fuller, denser broadcast-style treatment. The two skills can run in sequence.
 
+For the picture, [Video Enhance](#video-enhance) inspects the recording and hardware, offers local CPU repair or optional AI enhancement, and shows a comparison before a full render.
+
 ## Quickstart: let your agent set it up
 
 Open your podcast project or a working folder in **Codex, Claude Code, Cursor Agent, Antigravity, or GitHub Copilot's local agent mode in VS Code**. Use a session that can read/write local files and run terminal commands.
@@ -84,6 +86,7 @@ Prefer manual setup? Continue with the [step-by-step instructions](#start-here-f
 | --- | --- | --- |
 | [Podcast Audio Repair](skills/podcast-audio-repair/SKILL.md) | Reduce background noise, even out speech levels, and cautiously test room-echo treatment | Local Python helper, RNNoise model, optional WPE code, comparison audio, and a settings report |
 | [That Radio Voice](skills/that-radio-voice/SKILL.md) | Give clean speech a fuller, denser radio sound with soft gating, EQ, compression, harmonic excitement, and peak-limited mastering | Big and Warm presets, local Python helper, WAV/MP3 exports, two comparison types, and a settings report; requires Podcast Audio Repair alongside it |
+| [Video Enhance](skills/video-enhance/SKILL.md) | Repair grain, poor lighting, softness, shake, flicker and interlacing; optionally upscale or interpolate motion | Portable CPU helper, optional Real-ESRGAN/RIFE/SeedVR2 adapters, hardware checks, preview approval and resumable renders |
 
 Each capability has its own folder under `skills/`. New skills enter this catalog when they have a working, reviewable workflow.
 
@@ -312,6 +315,58 @@ To reduce lost breaths or word endings, lower `--gate-threshold-db` (for example
 | `report.json` | Exact filters, preset/overrides, stage-envelope measurements, loudness/peaks, dependency and source hashes, and listening status |
 
 Use the matched comparison to judge body, presence, and density without most of the volume bias. Use the actual-volume comparison to hear delivery level. Full-file matching does not make every phrase equally loud. Check gate chatter, soft words, breaths, S/SH sounds, pumping, and distortion before accepting a full run. If the agent cannot hear audio, listening approval stays pending. See the [processing reference](skills/that-radio-voice/references/processing.md) for the chain and its limits.
+
+## Video Enhance
+
+[Video Enhance](skills/video-enhance/SKILL.md) provides a preview-first alternative to repeatedly applying enhancement controls in an editor. It uses free local processing engines. It does not claim identical results to CapCut or other proprietary tools; AI reconstruction cannot guarantee recovery of the original detail.
+
+### Install with your agent
+
+```text
+Install video-enhance from https://github.com/rovidxmedia/AI-Media-Skills.
+Read the README, skills/video-enhance/SKILL.md and its helper scripts.
+Install the complete video-enhance folder in the project skill location for
+my local agent, following the documented skill-location table. Preserve an
+existing installation and explain conflicts before replacing it.
+
+Run the helper's doctor command. Check Python 3.10+, FFmpeg and ffprobe.
+Explain missing dependencies and offer compatible setup. Install only selected
+AI engines after showing their download requirements, using an isolated cache.
+Do not process a full recording during installation.
+```
+
+The video skill is independent of the audio skills. Its CPU helper uses only the Python standard library. AI engines are optional downloads and retain their licenses. Media processing is local; the agent host has its own connection and permissions.
+
+### Ask for an enhancement
+
+```text
+Use video-enhance on "<full path to my recording>".
+Inspect my hardware and sample footage. Recommend relevant repairs and ask me
+which enhancement style, resolution, frame rate and processing-time tradeoff
+I want. Show a short original/treated comparison and measured render estimate.
+Let me review it before processing the whole recording. Preserve my source and
+all audio tracks, and put generated files in a new output folder.
+```
+
+### Run it directly
+
+From the repository root, using `python3` where appropriate:
+
+```sh
+python skills/video-enhance/scripts/video_enhance.py doctor
+python skills/video-enhance/scripts/video_enhance.py analyze --input "recording.mkv" --job "runs/video-01"
+python skills/video-enhance/scripts/video_enhance.py preview --job "runs/video-01" --engine cpu --style natural --repairs denoise,exposure --gamma 1.12 --height source --fps source --starts 30 --seconds 10
+```
+
+Choose an excerpt inside your recording. After reviewing the actual comparison, use `render --job FOLDER --accept-preview SIGNATURE` with the returned preview signature. `resume --job FOLDER` continues an approved interrupted render. Changing settings requires another preview.
+
+Inspect `setup --engine realesrgan` or `setup --engine rife` before adding `--install`. Real-ESRGAN restores live-action detail; RIFE generates intermediate frames. SeedVR2 is a heavier optional reconstruction adapter with an isolated PyTorch environment. See [engine setup](skills/video-enhance/references/engines.md) for package sizes, hardware candidates and model requirements.
+
+`--height 1080 --fps 60 --interpolation rife` requests 1080-high output and neural motion interpolation when that raises the effective frame rate. For fractional footage, choose a rational such as `60000/1001` when appropriate. CPU `--interpolation motion` uses conventional motion estimation. Detected variable-rate footage requires an explicit output rate; HDR requires an explicit color-handling choice.
+
+Jobs contain inspection frames, a muted side-by-side comparison (original left, treated right), an enhanced excerpt with all audio, a review page, settings, benchmark estimates and checkpoints. MKV is the default to preserve audio codecs; MP4 is available for compatible tracks. Review face consistency, texture, text, motion, cuts, crop/borders and lip sync before accepting.
+
+Windows CPU behavior is locally exercised. macOS/Linux CPU checks are configured in GitHub Actions; other hardware needs its own successful sample. Consult the [compatibility and validation record](skills/video-enhance/references/validation.md) before relying on a GPU path. [Repair controls](skills/video-enhance/references/repairs.md) explain broader repairs and limits, including stabilization storage, HDR metadata and VFR conversion.
 
 ## Contribute a skill
 

@@ -318,7 +318,7 @@ Use the matched comparison to judge body, presence, and density without most of 
 
 ## Video Enhance
 
-[Video Enhance](skills/video-enhance/SKILL.md) provides a preview-first alternative to repeatedly applying enhancement controls in an editor. It uses free local processing engines. It does not claim identical results to CapCut or other proprietary tools; AI reconstruction cannot guarantee recovery of the original detail.
+[Video Enhance](skills/video-enhance/SKILL.md) analyzes the footage first, explains the recommended treatment and waits for your confirmation before enhancement setup or processing. It then produces a comparison preview for a second review before the full render. It uses free local processing engines. It does not claim identical results to CapCut or other proprietary tools; AI reconstruction cannot guarantee recovery of the original detail.
 
 ### Install with your agent
 
@@ -341,9 +341,11 @@ The video skill is independent of the audio skills. Its CPU helper uses only the
 
 ```text
 Use video-enhance on "<full path to my recording>".
-Inspect my hardware and sample footage. Recommend relevant repairs and ask me
-which enhancement style, resolution, frame rate and processing-time tradeoff
-I want. Show a short original/treated comparison and measured render estimate.
+First analyze my footage and hardware. Explain the issues you find, the repairs
+you recommend for the best attainable quality, their tradeoffs and any limits.
+Confirm that treatment plan with me, including enhancement style, resolution,
+frame rate and processing-time preference, before enhancement setup or processing.
+Then show a short original/treated comparison and measured render estimate.
 Let me review it before processing the whole recording. Preserve my source and
 all audio tracks, and put generated files in a new output folder.
 ```
@@ -355,6 +357,11 @@ From the repository root, using `python3` where appropriate:
 ```sh
 python skills/video-enhance/scripts/video_enhance.py doctor
 python skills/video-enhance/scripts/video_enhance.py analyze --input "recording.mkv" --job "runs/video-01"
+```
+
+Review the inspection frames and motion, present a diagnosis and treatment recommendation, and confirm it with the user before continuing. The agent manages this conversation checkpoint; the standalone CLI does not enforce treatment confirmation. For an agreed CPU cleanup, for example:
+
+```sh
 python skills/video-enhance/scripts/video_enhance.py preview --job "runs/video-01" --engine cpu --style natural --repairs denoise,exposure --gamma 1.12 --height source --fps source --starts 30 --seconds 10
 ```
 

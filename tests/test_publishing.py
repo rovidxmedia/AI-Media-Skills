@@ -136,6 +136,24 @@ class PackagerTests(Fixture):
 
 
 class ShortsTests(Fixture):
+    def stacked_config(self,captions='burn'):
+        source=self.folder('stacked source 世界.mkv')
+        sc.ffmpeg(['-f','lavfi','-i','color=c=blue:size=320x180:rate=30000/1001:duration=4',
+            '-f','lavfi','-i','sine=frequency=660:sample_rate=48000:duration=4',
+            '-vf',"drawbox=x=0:y=0:w=160:h=90:color=red:t=fill,drawbox=x=0:y=90:w=160:h=90:color=lime:t=fill,drawbox=x=160:y=0:w=160:h=180:color=yellow:t=fill:enable='gte(t,1.5)'",
+            '-c:v','libx264','-c:a','pcm_s16le',source])
+        root,job,words,c,sig=self.config(source=source,captions=captions)
+        # Nonzero source origin, reviewed host switch and a stable graphic window.
+        c.update(start=.1,end=2.6)
+        c['framing']={'mode':'stacked','speaker_shots':[
+            {'start':.1,'end':1.1,'crop':[0,0,.5,.5]},
+            {'start':1.1,'end':2.6,'crop':[0,.5,.5,.5]}],
+            'graphic':{'start':.6,'end':1.3,'crop':[.5,0,.5,1]}}
+        cf=self.folder('stacked candidates.json'); wf=self.folder('stacked words.json')
+        sc.write(cf,{'source_sha256':job['source']['sha256'],'clips':[c]}); sc.write(wf,words)
+        sig=sc.plan(NS(job=str(root),transcript=str(wf),candidates=str(cf)))['plan_signature']
+        return root,job,words,c,sig
+
     def config(self,name='job',source=None,mode='crop',captions='burn'):
         root=self.folder(name)
         sc.analyze(NS(input=str(source or self.source),job=str(root),audio_track=1 if source is None else 0,width=180,height=320))
@@ -220,6 +238,86 @@ class ShortsTests(Fixture):
         self.assertNotIn(r'{\pos',ass); self.assertIn(r'{\pos',(root/'captions.srt').read_text())
         plan=sc.read(root/'plan.json'); plan['clips'][0]['end']=3; sc.write(root/'plan.json',plan)
         with self.assertRaisesRegex(ValueError,'changed'): sc.load_plan(root)
+
+    def test_stacked_shots_holds_fractional_frames_audio_and_captions(self):
+        root,job,words,c,sig=self.stacked_config()
+        result=sc.preview(NS(job=str(root),accept_plan=sig,resume=False)); folder=root/c['id']
+        meta=sc.read(folder/'metadata.json'); f=meta['framing']
+        self.assertEqual(f['mode'],'stacked'); self.assertTrue(f['graphic']['hold_edges'])
+        self.assertEqual(sc.caption_groups(words['words'],.1,2.6),meta['caption_groups'])
+        ass=(folder/'captions.ass').read_text(encoding='utf-8')
+        style=next(s for s in ass.splitlines() if s.startswith('Style:')).split(',')
+        self.assertEqual(int(style[-2]),int(320*f['caption_bottom']))
+        for filename in ('clean.mp4','captioned.mp4'):
+            proof=sc.verify_stacked(folder/filename,folder/'audio.m4a',job,c)
+            self.assertEqual(proof['frames'],75); self.assertTrue(proof['audio_packets_unchanged'])
+            self.assertAlmostEqual(tone_frequency(folder/filename),660,delta=12)
+        # Host changes crop at 1s; graphic stays blue before/after its live interval,
+        # although the source graphic turns yellow later. Most of the frame is used.
+        for t,channel in ((.1,0),(1.3,1),(2.3,1)):
+            pixels=subprocess.check_output(['ffmpeg','-v','error','-ss',str(t),'-i',str(folder/'clean.mp4'),
+                '-frames:v','1','-pix_fmt','rgb24','-f','rawvideo','-'])
+            def pixel(x,y): return list(pixels[(y*180+x)*3:(y*180+x)*3+3])
+            self.assertGreater(pixel(90,40)[channel],200)
+            self.assertGreater(pixel(90,240)[2],200)
+            lit=sum(max(pixels[i:i+3])>100 for i in range(0,len(pixels),3))
+            self.assertGreater(lit/(180*320),.75)
+        before=sc.read(root/'preview.json')['files']
+        self.assertEqual(result['preview_signature'],sc.preview(NS(job=str(root),resume=True))['preview_signature'])
+        self.assertEqual(before,sc.read(root/'preview.json')['files'])
+        sc.render(NS(job=str(root),accept_preview=result['preview_signature']))
+        self.assertEqual(sc.digest(self.source),self.source_hash)
+
+    def test_stacked_audio_stage_resume_preserves_picture(self):
+        root,job,words,c,sig=self.stacked_config(captions='srt'); original=sc.ffmpeg
+        def interrupted(values,**kwargs):
+            if str(values[-1]).endswith('.m4a'): raise OSError('audio interrupted')
+            return original(values,**kwargs)
+        with patch.object(sc,'ffmpeg',side_effect=interrupted):
+            with self.assertRaisesRegex(OSError,'audio interrupted'): sc.preview(NS(job=str(root),accept_plan=sig,resume=False))
+        picture=root/c['id']/'picture.mp4'; before=sc.digest(picture)
+        self.assertFalse((root/'.running').exists())
+        sc.preview(NS(job=str(root),resume=True)); self.assertEqual(before,sc.digest(picture))
+
+    def test_stacked_single_shot_rotated_anamorphic_30fps(self):
+        raw=self.folder('anamorphic.mp4'); source=self.folder('rotated.mp4')
+        sc.ffmpeg(['-f','lavfi','-i','testsrc2=size=320x180:rate=30:duration=4',
+            '-f','lavfi','-i','sine=frequency=330:sample_rate=48000:duration=4',
+            '-vf','setsar=2','-c:v','libx264','-c:a','aac',raw])
+        sc.ffmpeg(['-i',raw,'-c','copy','-metadata:s:v:0','rotate=90',source])
+        if not any(s.get('rotation') for s in sc.video(sc.probe(source)).get('side_data_list',[])):
+            source.unlink()  # This test owns the just-created fixture.
+            sc.ffmpeg(['-display_rotation','90','-i',raw,'-c','copy',source])
+        root,job,words,c,sig=self.config(source=source,captions='srt')
+        c['framing']={'mode':'stacked','speaker_shots':[{'start':0,'end':2.5,'crop':[0,0,1,1]}],
+                      'graphic':{'start':0,'end':2.5,'crop':[0,0,1,1]}}
+        self.assertEqual(sc.crop_pixels(job,[0,0,1,1]),'crop=90:320:0:0')
+        cf=self.folder('candidates.json'); wf=self.folder('words.json')
+        sc.write(cf,{'source_sha256':job['source']['sha256'],'clips':[c]}); sc.write(wf,words)
+        sig=sc.plan(NS(job=str(root),transcript=str(wf),candidates=str(cf)))['plan_signature']
+        sc.preview(NS(job=str(root),accept_plan=sig,resume=False))
+        proof=sc.read(root/'preview.json')['verified']['clip-01/clean']
+        self.assertEqual(proof['frames'],75); self.assertEqual(proof['fps'],'30/1')
+
+    def test_stacked_validation_and_legacy_plan_compatibility(self):
+        root,job,words,c,sig=self.stacked_config(captions='srt'); base=c['framing']
+        mutations=[{'speaker_shots':[]},{'graphic_y':.2},{'graphic_height':.9},
+                   {'caption_bottom':.1},{'speaker_height':float('nan')},
+                   {'graphic':{**base['graphic'],'end':4}},
+                   {'graphic':{**base['graphic'],'end':.600001}},
+                   {'graphic':{**base['graphic'],'hold_edges':False}},
+                   {'graphic':{**base['graphic'],'crop':[.8,0,.5,1]}},
+                   {'graphic':{**base['graphic'],'crop':[0,0,.000001,1]}},
+                   {'speaker_shots':[{**base['speaker_shots'][0],'end':.100001},base['speaker_shots'][1]]},
+                   {'speaker_shots':[{**base['speaker_shots'][0],'end':1},base['speaker_shots'][1]]}]
+        for change in mutations:
+            with self.subTest(change=change),self.assertRaises(ValueError):
+                sc.stacked_framing({**base,**change},c['start'],c['end'],job)
+        normalized=sc.stacked_framing(base,c['start'],c['end'],job)
+        self.assertEqual(normalized,sc.stacked_framing(normalized,c['start'],c['end'],job))
+        legacy={**c,'framing':{'mode':'fit','center_x':.5,'center_y':.5}}
+        actual=sc.candidates({'source_sha256':job['source']['sha256'],'clips':[legacy]},words,job)[0]
+        self.assertEqual(actual['framing'],legacy['framing'])
 
 
 if __name__=='__main__': unittest.main()

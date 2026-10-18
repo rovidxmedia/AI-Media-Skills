@@ -6,7 +6,7 @@ For every candidate retain exact interval, opening quote within the first 3.5 se
 
 Allow a breath before the important word and a natural landing after the conclusion. Never end mid-word or omit an essential qualification to meet an arbitrary length. The helper exports contiguous excerpts, without new voiceovers or internal speech edits. Use Editor first for reviewed tightening, then transcribe the resulting file again.
 
-Crop centers use normalized displayed-image coordinates. Inspect stills plus motion. `fit` keeps the whole picture with black padding, useful for screen shares/two-person layouts; it does not fill portrait space or track faces. Cropping enlarges existing pixels and can soften landscape footage. Moving subjects may need another composition. Enhancement belongs to Video Enhance.
+Crop centers use normalized displayed-image coordinates. Inspect stills plus motion. For host-plus-graphics footage, prefer the [stacked layout](stacked-framing.md) to use the vertical frame while keeping the face and graphic readable. Choose stable graphic frames for holds and inspect source layout changes. `fit` keeps the whole picture with black padding when preserving the complete layout is necessary; it does not fill portrait space or track faces. Cropping enlarges existing pixels and can soften landscape footage. Moving subjects may need another composition. Enhancement belongs to Video Enhance.
 
 Captions use outlined white text in groups of up to four timed words, initial bottom/right clearance and a system Arial request with font fallback. Correct names/numbers and inspect long words, line breaks and overlays. ASS override syntax is neutralized; SRT retains literal words. Grouping is not a transcription or typography verdict.
 

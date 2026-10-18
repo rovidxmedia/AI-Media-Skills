@@ -91,7 +91,7 @@ Prefer manual setup? Continue with the [step-by-step instructions](#start-here-f
 | [Video Enhance](skills/video-enhance/SKILL.md) | Repair grain, poor lighting, softness, shake, flicker and interlacing; optionally upscale or interpolate motion | Portable CPU helper, optional Real-ESRGAN/RIFE/SeedVR2 adapters, hardware checks, preview approval and resumable renders |
 | [Editor](skills/editor/SKILL.md) | Tighten speech video with filler/pause proposals, reviewed false starts/retakes, held emphasis close-ups and optional captions | Natural/Tight/Custom styles, local word transcription or timed-transcript import, transcript review, all-track timeline edits, preview approval and resumable renders |
 | [Podcast Packager](skills/podcast-packager/SKILL.md) | Create grounded publishing copy, separate square/wide artwork, MP3 and MP4 from a finished episode | Local export helper, embedded cover, chapter text, metadata, review page and verification; artwork generation uses the agent's selected image capability |
-| [Short-form Clips](skills/short-form-clips/SKILL.md) | Find self-contained spoken hooks and export captioned portrait clips for TikTok and YouTube Shorts | Agent-reviewed candidate ranking, source-bound word imports, crop/fit layouts, clean/captioned videos, SRT, covers and preview acceptance |
+| [Short-form Clips](skills/short-form-clips/SKILL.md) | Find self-contained spoken hooks and export captioned portrait clips for TikTok and YouTube Shorts | Agent-reviewed candidate ranking, source-bound word imports, stacked host/graphics and crop/fit layouts, clean/captioned videos, SRT, covers and preview acceptance |
 
 Each capability has its own folder under `skills/`. New skills enter this catalog when they have a working, reviewable workflow.
 
@@ -462,7 +462,7 @@ Show me the candidate bounds and portrait framing before generating drafts.
 Create corrected captions, clean alternatives, cover frames and publishing copy.
 ```
 
-The agent selects moments semantically; the helper exports reviewed contiguous passages. Default 1080x1920 clips use static crop or whole-frame fit, nominal source rate, burned captions plus SRT and clean MP4. There is no automatic face tracking. Use matching word JSON or the optional sibling Editor's local ASR workflow, then review the actual speech. Pre-edit transcript times cannot be reused against changed footage. Complete short drafts are previewed and accepted in place without another lossy render. See [interfaces and recovery](skills/short-form-clips/references/workflow.md).
+The agent selects moments semantically; the helper exports reviewed contiguous passages. Default 1080x1920 clips prefer a [stacked host/graphics layout](skills/short-form-clips/references/stacked-framing.md) for screen demonstrations: large live host above readable graphics, shot-specific reviewed crops, disclosed stable graphic holds and captions above the graphics. Host-only footage can use portrait crop; whole-frame fit remains available. There is no automatic face tracking. Nominal source rate, burned captions plus SRT and clean MP4 remain defaults. Use matching word JSON or the optional sibling Editor's local ASR workflow, then review the actual speech. Pre-edit transcript times cannot be reused against changed footage. Complete short drafts are previewed and accepted in place without another lossy render. See [interfaces and recovery](skills/short-form-clips/references/workflow.md).
 
 ```sh
 python skills/podcast-packager/scripts/packager.py doctor

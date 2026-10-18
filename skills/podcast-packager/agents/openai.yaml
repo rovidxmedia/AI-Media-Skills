@@ -1,0 +1,4 @@
+interface:
+  display_name: "Podcast Packager"
+  short_description: "Publishing copy, cover artwork and MP3/MP4 exports"
+  default_prompt: "Use $podcast-packager to create a complete publishing package from my finished episode."

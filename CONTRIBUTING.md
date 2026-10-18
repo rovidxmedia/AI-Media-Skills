@@ -56,3 +56,7 @@ Only include media and code you can redistribute. Do not commit client recording
 Open an issue for a reproducible problem or a pull request with the change, intended behavior, validation performed, and remaining limitations. Describe platform-specific failures with tool versions and sanitized errors. Avoid posting a recording or full processing report unless you have checked its contents and have permission to share it.
 
 Original contributions use this repository's MIT license. Identify separately licensed material explicitly.
+
+## Publishing and short-form checks
+
+Run `python -m unittest discover -s tests -p "test_publishing.py" -v` with Python and FFmpeg/ffprobe (libx264, libmp3lame, AAC and libass/subtitles). These tests generate their own source fixtures and need no model/network. They exercise packaging, audio-only video, multitrack selection, captions, portrait layouts, fractional rates, invalid imports, storage failures, interrupted resume and hash receipts. Run the full existing suite before submitting. Keep semantic-selection judgments, speech/visual review and actual ASR/image-engine validation separate from these technical checks. Do not commit private episode text, media, job reports or output assets.

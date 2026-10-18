@@ -1,0 +1,4 @@
+interface:
+  display_name: "Short-form Clips"
+  short_description: "Find strong hooks and create captioned portrait clips"
+  default_prompt: "Use $short-form-clips to find self-contained moments and create TikTok and YouTube Shorts clips."

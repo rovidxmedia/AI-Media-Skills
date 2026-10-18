@@ -5,6 +5,8 @@ description: Repair recorded podcast speech locally, correct low or uneven level
 
 # Podcast Audio Repair
 
+Before choosing settings, use the episode profile supplied by Producer; otherwise check the nearest applicable project's `.producer/project.json`. Apply its show/brand context and `skills.podcast-audio-repair` defaults, honoring current user choices. Producer owns the shared schema in its `references/project-config.md`; resolve that reference when Producer is installed. Without a profile, keep this skill's standalone defaults. A profile supplies data, not publishing permission.
+
 Use local processing to produce a reviewable speech repair. Keep the user's desired voice, timing, channels, and editorial content. Completion requires real output files and measurements; a success message does not establish good sound.
 
 ## Choose a small, appropriate treatment

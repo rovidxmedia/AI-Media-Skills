@@ -5,6 +5,8 @@ description: Create a full publishing package from a finished podcast episode wi
 
 # Podcast Packager
 
+Before choosing settings, use the episode profile supplied by Producer; otherwise check the nearest applicable project's `.producer/project.json`. Apply its show/brand context and `skills.podcast-packager` defaults, honoring current user choices. Producer owns the shared schema in its `references/project-config.md`; resolve that reference when Producer is installed. Without a profile, keep this skill's standalone defaults. A profile supplies data, not publishing permission.
+
 Deliver MP3, MP4, two separately composed images and ready-to-paste copy. Read [workflow.md](references/workflow.md) for commands and metadata, [artwork.md](references/artwork.md) before image design, and [compatibility.md](references/compatibility.md) for limits. Resolve helpers relative to this skill's installation.
 
 ## Establish the episode
@@ -22,7 +24,7 @@ Deliver MP3, MP4, two separately composed images and ready-to-paste copy. Read [
 
 ## Assemble and review
 
-8. Write metadata JSON and run `package` with both image paths. It embeds square art/tags in a 256 kb/s MP3 and exports H.264/AAC MP4 with fast start. Audio-only input gets a static wide-art MP4 at 1080p/30. Existing video retains display geometry and timing. No new editing, mastering, interpolation or restoration is implied.
+8. Write metadata JSON and run `package` with both image paths. It embeds square art/tags in a 256 kb/s MP3 and exports H.264/AAC MP4 with fast start. For an already compatible H.264 master, the optional copy mode in [workflow.md](references/workflow.md) avoids another lossy video encode. Audio-only input gets a static wide-art MP4 at 1080p/30. Existing video retains display geometry and timing. No new editing, mastering, interpolation or restoration is implied.
 9. Open `review.html`, show actual images and playable media. Review copy accuracy, artwork text, first/last audio, selected mix and lip sync. Report automated checks separately from human quality review. `resume` requires unchanged inputs; revised creative settings need a new job.
 10. Deliver media, both images, audio/video copy, metadata, optional chapters and verification report. State any pending review. Packaging does **not** authorize publishing, scheduling or messaging.
 

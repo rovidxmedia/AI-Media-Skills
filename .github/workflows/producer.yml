@@ -1,0 +1,24 @@
+name: Producer coordination checks
+on:
+  push:
+    paths: ['skills/producer/**', 'tests/test_producer.py', '.github/workflows/producer.yml']
+  pull_request:
+    paths: ['skills/producer/**', 'tests/test_producer.py', '.github/workflows/producer.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  producer:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Exercise project setup and simulated production/distribution receipts
+        run: python -m unittest discover -s tests -p "test_producer.py" -v

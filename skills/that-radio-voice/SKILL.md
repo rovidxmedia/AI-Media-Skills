@@ -5,6 +5,8 @@ description: Give recorded speech a big broadcast radio sound using tone shaping
 
 # That Radio Voice
 
+Before choosing settings, use the episode profile supplied by Producer; otherwise check the nearest applicable project's `.producer/project.json`. Apply its show/brand context and `skills.that-radio-voice` defaults, honoring current user choices. Producer owns the shared schema in its `references/project-config.md`; resolve that reference when Producer is installed. Without a profile, keep this skill's standalone defaults. A profile supplies data, not publishing permission.
+
 Make clean recorded speech fuller, denser, and more present while keeping the speaker's identity, words, pitch, timing, and channel layout. The result should sound intentionally produced. Judge tone at matched loudness as well as at delivery volume.
 
 ## Input and treatment

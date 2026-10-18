@@ -14,6 +14,7 @@ The video tests need only FFmpeg, ffprobe and Python. They generate redistributa
 | --- | --- |
 | Windows, Python 3.13, FFmpeg 7.0 | Local CPU integration checks, including preview, full render/resume, audio labels, fractional rate and portrait geometry |
 | Windows RTX A4500, NCNN/Vulkan | Real-ESRGAN and RIFE inference passed on private live-action footage, a degraded open movie excerpt, and the opt-in integration fixture |
+| Windows RTX A4500, FFmpeg 7.0 NVENC | Optional H.264 encoding exercised locally, including one-frame shots, mixed shot lengths, joined decoded-frame verification and resume. Other NVIDIA configurations remain unverified. |
 | macOS CPU | Native Apple Silicon GitHub Actions CPU tests passed with Python 3.12 and Homebrew FFmpeg 9; optional filters depend on the installed build |
 | Linux CPU | Native Ubuntu GitHub Actions CPU tests passed with Python 3.12 and distribution FFmpeg |
 | AMD/Intel Vulkan, Apple MoltenVK | Upstream candidates; no local GPU inference evidence |
@@ -41,5 +42,7 @@ Windows host, Python 3.13.3, FFmpeg 7.0, RTX A4500 with approximately 19 GiB exp
 The open-movie test uses **Big Buck Bunny**, (c) copyright 2008, Blender Foundation / www.bigbuckbunny.org, under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). [Official source and license](https://peach.blender.org/about/), [download directory](https://download.blender.org/peach/bigbuckbunny_movies/). The test added grain, darkened/compressed an excerpt, then restored/upscaled/interpolated it. No movie files are bundled here.
 
 To opt in to the installed GPU-engine integration check, set `VIDEO_ENHANCE_TEST_CACHE` to the configured cache directory before running the tests. Leave it unset for ordinary cross-platform CPU CI.
+
+Set `VIDEO_ENHANCE_TEST_NVENC=1` separately to exercise real NVIDIA encoding without model downloads. The generated fixture joins one-frame, short and longer shots, verifies all decoded frames and resumes unchanged chunks. CPU CI skips this test. Additional CPU regressions check that scene analysis stops decoding at the excerpt boundary, known edit boundaries reset temporal context, and a partial final frame-grid interval survives muxing. Hardware encoding is not neural restoration.
 
 The complete local repository suite passed 32 tests, including the opt-in GPU check. Skill format validation, reference resolution and Git whitespace checks also passed. Human motion/lip-sync review and native SeedVR2 inference remain outstanding validation tasks.

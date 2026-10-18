@@ -5,6 +5,8 @@ description: Analyze and repair grainy, dark, soft, shaky, flickering, or interl
 
 # Video Enhance
 
+Before choosing settings, use the episode profile supplied by Producer; otherwise check the nearest applicable project's `.producer/project.json`. Apply its show/brand context and `skills.video-enhance` defaults, honoring current user choices. Producer owns the shared schema in its `references/project-config.md`; resolve that reference when Producer is installed. Without a profile, keep this skill's standalone defaults. A profile supplies data, not publishing permission.
+
 Improve a recording while retaining its identity, timing and audio. Use the bundled Python helper for reproducible processing. Its CPU path needs only Python 3.10+, FFmpeg and ffprobe; AI engines are optional. Do not promise equivalence to proprietary enhancement tools or recovered ground-truth detail.
 
 ## Analyze the footage first
@@ -51,6 +53,8 @@ python skills/video-enhance/scripts/video_enhance.py preview --job "runs/video-0
 ```
 
 `--starts` must lie inside the file. `--height` is the final image height; aspect ratio is retained. No repair is implicitly enabled by the helper. `--style` controls conservative/strong denoising and Real-ESRGAN blending; it does not independently select an AI engine. Set exposure/color controls only when those repairs are selected.
+
+For edited programs, supply known edit/layout boundaries using `--cuts CUTS.json` (a JSON list of source-timeline seconds); these supplement detected cuts so temporal cleanup cannot span subtle jump cuts. Optional `--encoder h264_nvenc` uses NVIDIA hardware H.264 encoding after a runtime trial. It changes encoding, not restoration, and requires a matching preview; software encoding remains the default. See [engine guidance](references/engines.md) for limits.
 
 Return the enhanced excerpt, side-by-side comparison, preview report, measured render/storage estimates, selected engine and any failure. The comparison places original on the left and treated on the right; it is muted. The enhanced file retains all original audio tracks. Compare lip sync there. Present the local review HTML or video when the host supports it.
 

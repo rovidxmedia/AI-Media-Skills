@@ -84,7 +84,15 @@ def probe(path):
 
 
 def cache_default():
-    base = Path(os.environ.get("LOCALAPPDATA", Path.home()/"AppData"/"Local")) if os.name == "nt" else Path(os.environ.get("XDG_CACHE_HOME", Path.home()/".cache"))
+    # Some local-agent sandboxes replace LOCALAPPDATA with a per-run directory.
+    # Keep installed environments discoverable across turns; --cache remains an
+    # explicit override for redirected profiles or a different storage drive.
+    if sys.platform == "win32":
+        base = Path.home()/"AppData"/"Local"
+    elif sys.platform == "darwin":
+        base = Path.home()/"Library"/"Caches"
+    else:
+        base = Path(os.environ.get("XDG_CACHE_HOME", Path.home()/".cache"))
     return base / "ai-media-skills" / "editor"
 
 

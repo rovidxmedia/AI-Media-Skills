@@ -123,6 +123,10 @@ class TimelineTests(unittest.TestCase):
             creator.assert_not_called()
             self.assertEqual(list(Path(root).iterdir()), [])
 
+    def test_windows_cache_is_stable_across_sandbox_localappdata_overrides(self):
+        with patch.object(editor.sys, "platform", "win32"), patch.dict(os.environ, {"LOCALAPPDATA": "ephemeral-run-cache"}):
+            self.assertEqual(editor.cache_default(), Path.home()/"AppData"/"Local"/"ai-media-skills"/"editor")
+
     def test_silence_intersection_and_wholly_quiet_recording(self):
         self.assertEqual(tl.intersect_ranges([[0, 2], [4, 8]], [[1, 5], [6, 9]]), [[1, 2], [4, 5], [6, 8]])
         self.assertFalse(tl.propose([], [[0, 6]], [0, 6])["cuts"][0]["selected"])

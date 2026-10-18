@@ -11,6 +11,7 @@ Read each selected specialist's current `SKILL.md` and relevant interface before
 | `edit` | Editor on the prepared media: Natural cuts, reviewed retakes, sparse held punch-ins, source mapping and selected captions | `media`, `report`, `timeline` |
 | `audio` | Optional Podcast Audio Repair, then optional That Radio Voice; remux only the chosen finished mix after timing checks | `media`, `report` |
 | `enhance` | Optional Video Enhance on retained footage, scene-aware restoration/interpolation and reviewed output choices | `media`, `report` |
+| `graphics` (requested only) | Video Motion Graphics on enhanced media with aligned working word timings; HyperFrames lower thirds, screenshot highlights and selected explanatory overlays | `media`, `report`, `cue-sheet`, `project` (editable project manifest) |
 | `master` | Agent verifies the finished full program, all intended audio/labels, geometry/rate, duration/decoding and representative lip sync | `media`, `report` |
 | `transcript` | Editor ASR workflow on this exact master, verified source-bound import or validated timeline remap; correct names/words | `words`, `report`; optional readable transcript/chapters |
 | `package` | Podcast Packager on the final master and matching transcript; optionally marketing/brand guidance | `video`, `audio`, `square`, `wide`, `metadata`, `report` |
@@ -18,6 +19,8 @@ Read each selected specialist's current `SKILL.md` and relevant interface before
 | `review` | Agent assembles final media/copy/art, quality findings and destination readiness for user review | `report`; completion means ready for final review, not publishing consent |
 
 The dependency graph runs through `transcript`, then allows package/shorts independently before final review. An existing project workflow may own different tools and additional graphics/doc stages; follow its applicable instructions, map verified results to these handoffs, and keep its manifest authoritative. Do not start a second production or copy its schedule/brand/account details into this generic skill. Explicit user changes take precedence.
+
+When `skills.video-motion-graphics.enabled` is true, the graph is `enhance → graphics → master`; otherwise `enhance → master` remains unchanged, including for older manifests. Graphics is requested work, so it cannot be silently skipped: complete it, or use `graphics-preferences` with the user's decision to disable/revise it. The graphics receipt input is exactly `enhance.media`; `master` then takes `graphics.media`. Record the cue plan, editable-project file/hash manifest and actual compositing verification report. Working word timings used for cues must align to this input; the later `transcript` stage still binds to the final graphics master. Replacing graphics makes every downstream handoff stale.
 
 Preserve the original and source SHA. Select a complete dialogue mix without summing duplicate tracks. Keep all-track edit/restoration masters and track labels until delivery exports deliberately choose the approved mix. Repairing a WAV requires verifying frame count/duration and remuxing with unchanged video/other tracks before marking the media stage finished. Do not confuse an audio-only result with the next stage's video input. Avoid repeated mastering and lossy generations; use verified masters and copy/remux where compatible.
 

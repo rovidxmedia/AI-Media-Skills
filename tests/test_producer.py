@@ -44,7 +44,7 @@ class ProducerTests(unittest.TestCase):
         return p
 
     def stage(self,name,replace=False,extra=None):
-        job=pr.load(self.job); parent=pr.INPUT[name]
+        job=pr.load(self.job); parent=pr.stage_input(job,name)
         source=job['source'] if parent is None else job['stages'][parent]['artifacts']['media']
         artifacts={}
         for key in pr.REQUIRED[name]:
@@ -56,7 +56,46 @@ class ProducerTests(unittest.TestCase):
         path=self.file('receipt-'+name+'.json',data); return pr.record(self.job,name,path,replace)
 
     def all_stages(self):
-        for name in pr.DEPS: self.stage(name)
+        for name in pr.stage_graph(pr.load(self.job)): self.stage(name)
+
+    def test_graphics_only_runs_when_requested_and_blocks_downstream_until_done(self):
+        self.assertNotIn('graphics',pr.status(self.job)['stages'])
+        self.all_stages()
+        with self.assertRaisesRegex(ValueError,'must be requested'):
+            self.stage('graphics')
+        settings=self.file('graphics-settings.json',{'enabled':True,'style':'restrained'})
+        result=pr.graphics_preferences(self.job,settings,'test-user-request-graphics')
+        self.assertEqual(result['next'],['graphics'])
+        self.assertEqual(result['stages']['master'],'stale')
+        pending=self.file('pending-master.json',{})
+        with self.assertRaisesRegex(ValueError,'prerequisite'): pr.record(self.job,'master',pending,replace=True)
+        self.stage('graphics')
+        self.stage('master',replace=True)
+        job=pr.load(self.job)
+        self.assertEqual(job['stages']['master']['input_sha256'],job['stages']['graphics']['artifacts']['media']['sha256'])
+        self.assertEqual(pr.status(self.job)['stages']['transcript'],'stale')
+        self.assertFalse(pr.read(self.project/'.producer/project.json')['skills']['video-motion-graphics']['enabled'])
+        self.assertEqual(job['graphics_revisions'][0]['decision_reference'],'test-user-request-graphics')
+        self.assertIn('project',job['stages']['graphics']['artifacts'])
+
+    def test_legacy_episode_graph_and_graphics_revision_guards(self):
+        self.all_stages(); job=pr.load(self.job)
+        del job['profile']['skills']['video-motion-graphics']; pr.save(self.job,job)
+        self.assertTrue(all(s=='completed' for s in pr.status(self.job)['stages'].values()))
+        for setting in ({'enabled':'if-needed'},{'enabled':True,'style':'random'},{'unrelated':True}):
+            path=self.file('bad-graphics.json',setting)
+            with self.assertRaises(ValueError): pr.graphics_preferences(self.job,path,'test-request')
+        chosen=self.file('graphics-settings.json',{'enabled':True})
+        pr.graphics_preferences(self.job,chosen,'test-request'); self.stage('graphics')
+        old=pr.load(self.job)['stages']['graphics']['artifacts']['media']['path']
+        style=self.file('graphics-style.json',{'style':'explainer'})
+        pr.graphics_preferences(self.job,style,'test-style-change')
+        job=pr.load(self.job)
+        self.assertNotIn('graphics',job['stages']); self.assertTrue(Path(old).exists())
+        self.assertIsNotNone(job['graphics_revisions'][-1]['previous_receipt'])
+        job['placements']={'existing':{}}; pr.save(self.job,job)
+        with self.assertRaisesRegex(ValueError,'Distribution already started'):
+            pr.graphics_preferences(self.job,chosen,'test-request')
 
     def plan(self,action='schedule',placement='episode-video'):
         job=pr.load(self.job); arts=job['stages']['package']['artifacts']

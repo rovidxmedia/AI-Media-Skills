@@ -14,7 +14,7 @@ import subprocess
 import time
 
 
-SKILLS=('editor','video-enhance','podcast-audio-repair','that-radio-voice','podcast-packager','short-form-clips')
+SKILLS=('editor','video-enhance','podcast-audio-repair','that-radio-voice','podcast-packager','short-form-clips','video-motion-graphics')
 DEPS={'diagnose':(), 'prepare':('diagnose',), 'edit':('prepare',), 'audio':('edit',),
       'enhance':('audio',), 'master':('enhance',), 'transcript':('master',),
       'package':('master','transcript'), 'shorts':('master','transcript'), 'review':('package','shorts')}
@@ -23,7 +23,7 @@ INPUT={'diagnose':None,'prepare':None,'edit':'prepare','audio':'edit','enhance':
 REQUIRED={'diagnose':{'report'},'prepare':{'media','report'},'edit':{'media','report','timeline'},
           'audio':{'media','report'},'enhance':{'media','report'},'master':{'media','report'},
           'transcript':{'words','report'},'package':{'video','audio','square','wide','metadata','report'},
-          'shorts':{'report'},'review':{'report'}}
+          'shorts':{'report'},'review':{'report'},'graphics':{'media','report','cue-sheet','project'}}
 OPTIONAL={'prepare','audio','enhance','shorts'}
 
 
@@ -119,13 +119,17 @@ def project_config(data):
     show['hosts']=[text(v,'host') for v in show['hosts']]
     defaults={'editor':{'style':'natural','captions':'off'},'video-enhance':{'enabled':'if-needed','style':'natural','resolution':'source','fps':'source'},
               'podcast-audio-repair':{'enabled':'if-needed'},'that-radio-voice':{'enabled':False},
-              'podcast-packager':{},'short-form-clips':{'count':3,'width':1080,'height':1920,'captions':'burn','framing':'content-aware'}}
+              'podcast-packager':{},'short-form-clips':{'count':3,'width':1080,'height':1920,'captions':'burn','framing':'content-aware'},
+              'video-motion-graphics':{'enabled':False,'style':'restrained'}}
     overrides=data.get('skills',{})
     if not isinstance(overrides,dict) or set(overrides)-set(SKILLS): raise ValueError('Unknown skill preferences')
     for k,v in overrides.items():
         if not isinstance(v,dict): raise ValueError('Skill preferences must be objects')
         defaults[k].update(v)
     if defaults['editor']['style'] not in ('natural','tight','custom'): raise ValueError('Unknown editing style')
+    graphics=defaults['video-motion-graphics']
+    if type(graphics['enabled']) is not bool: raise ValueError('Motion graphics enabled must be true or false')
+    if graphics['style'] not in ('restrained','explainer','custom'): raise ValueError('Unknown motion graphics style')
     count=defaults['short-form-clips']['count']
     if isinstance(count,bool) or not isinstance(count,int) or not 0<=count<=20: raise ValueError('Short count must be 0 through 20')
     distribution=data.get('distribution',{})
@@ -205,9 +209,42 @@ def load(root):
     return job
 
 
+def stage_graph(job):
+    # Existing manifests without this preference retain their original graph and receipts.
+    enabled=job['profile']['skills'].get('video-motion-graphics',{}).get('enabled',False)
+    graph={}
+    for name,deps in DEPS.items():
+        if name=='master' and enabled:
+            graph['graphics']=('enhance',)
+            deps=('graphics',)
+        graph[name]=deps
+    return graph
+
+
+def stage_input(job,stage):
+    return 'graphics' if stage=='master' and 'graphics' in stage_graph(job) else ('enhance' if stage=='graphics' else INPUT[stage])
+
+
+def graphics_preferences(root,settings,decision):
+    with lock(root):
+        job=load(root)
+        if job['placements']: raise ValueError('Distribution already started; reconcile releases before revising production')
+        patch=read(settings)
+        if not isinstance(patch,dict) or set(patch)-{'enabled','style'}: raise ValueError('Supply only graphics enabled/style preferences')
+        previous=job['profile']['skills'].get('video-motion-graphics',{'enabled':False,'style':'restrained'})
+        profile=project_config(job['profile'])
+        profile['skills']['video-motion-graphics'].update(patch); profile=project_config(profile)
+        chosen=profile['skills']['video-motion-graphics']
+        if chosen==previous: return status(root)
+        job.setdefault('graphics_revisions',[]).append({'previous':previous,'selected':chosen,
+            'decision_reference':text(decision,'user decision reference'),'previous_receipt':job['stages'].pop('graphics',None)})
+        job['profile']=profile; job['approval']=None; save(root,job)
+    return status(root)
+
+
 def stages(job):
     states={}; hashes={}; cache={}
-    for stage,deps in DEPS.items():
+    for stage,deps in stage_graph(job).items():
         r=job['stages'].get(stage)
         parents=all(states[d] in ('completed','skipped') for d in deps)
         if not r: states[stage]='ready' if parents else 'pending'; continue
@@ -221,9 +258,11 @@ def stages(job):
 def record(root,stage,receipt,replace=False):
     with lock(root):
         job=load(root); states,hashes=stages(job); data=read(receipt)
+        graph=stage_graph(job)
+        if stage not in graph: raise ValueError('Motion graphics must be requested in the saved episode preferences before this stage')
         if stage in job['stages'] and not replace: raise ValueError('Stage exists; use --replace for an intentional revised result')
-        if any(states[d] not in ('completed','skipped') for d in DEPS[stage]): raise ValueError('Complete valid prerequisite stages first')
-        parent=INPUT[stage]; source=job['source'] if parent is None else job['stages'][parent]['artifacts']['media']
+        if any(states[d] not in ('completed','skipped') for d in graph[stage]): raise ValueError('Complete valid prerequisite stages first')
+        parent=stage_input(job,stage); source=job['source'] if parent is None else job['stages'][parent]['artifacts']['media']
         if data.get('input_sha256')!=source['sha256']: raise ValueError('Receipt input does not match the current stage media')
         state=data.get('status','completed'); reason=data.get('reason','')
         if state not in ('completed','skipped'): raise ValueError('Stage result must be completed or skipped')
@@ -248,7 +287,7 @@ def record(root,stage,receipt,replace=False):
             if sum(Path(a['path']).suffix.lower()=='.mp4' for a in artifacts.values())<count:
                 raise ValueError('Record each selected finished short, not just a report')
         job['stages'][stage]={'status':state,'reason':reason,'input_sha256':source['sha256'],
-            'dependencies':{d:hashes[d] for d in DEPS[stage]},'artifacts':artifacts,'recorded_at':time.time()}
+            'dependencies':{d:hashes[d] for d in graph[stage]},'artifacts':artifacts,'recorded_at':time.time()}
         if stage=='shorts':
             job['stages'][stage].update(selected_count=data.get('selected_count',job['profile']['skills']['short-form-clips']['count']),
                                         decision_reference=data.get('decision_reference'))
@@ -372,8 +411,9 @@ def status(root):
     job=load(root); states,_=stages(job)
     try: current_release(job); release_current=True
     except ValueError: release_current=False
-    return {'job':str(root),'stages':states,'next':[s for s in DEPS if states[s] in ('ready','stale','changed') and
-        all(states[d] in ('completed','skipped') for d in DEPS[s])],
+    graph=stage_graph(job)
+    return {'job':str(root),'stages':states,'next':[s for s in graph if states[s] in ('ready','stale','changed') and
+        all(states[d] in ('completed','skipped') for d in graph[s])],
         'placements':{k:(v['status'] if all(unchanged(r['readback']) for r in v['results']) else 'evidence-changed') for k,v in job['placements'].items()},
         'release_signature':job['release']['signature'] if job['release'] else None,
         'release_current':release_current,
@@ -389,8 +429,10 @@ def main():
     a=sub.add_parser('init'); a.add_argument('--project',required=True); a.add_argument('--input',required=True); a.add_argument('--job',required=True)
     a.add_argument('--overrides')
     sub.add_parser('status').add_argument('--job',required=True)
-    a=sub.add_parser('record'); a.add_argument('--job',required=True); a.add_argument('--stage',choices=DEPS,required=True)
+    a=sub.add_parser('record'); a.add_argument('--job',required=True); a.add_argument('--stage',choices=(*DEPS,'graphics'),required=True)
     a.add_argument('--receipt',required=True); a.add_argument('--replace',action='store_true')
+    a=sub.add_parser('graphics-preferences'); a.add_argument('--job',required=True); a.add_argument('--settings',required=True)
+    a.add_argument('--decision-reference',required=True)
     a=sub.add_parser('release'); a.add_argument('--job',required=True); a.add_argument('--plan',required=True); a.add_argument('--replace',action='store_true')
     a.add_argument('--append',action='store_true'); a.add_argument('--refresh-destinations',action='store_true')
     a=sub.add_parser('approve'); a.add_argument('--job',required=True); a.add_argument('--evidence',required=True)
@@ -400,6 +442,7 @@ def main():
     args=p.parse_args()
     try:
         if args.command=='doctor': out=doctor(args.project,args.skills_root)
+        elif args.command=='graphics-preferences': out=graphics_preferences(Path(args.job).resolve(),args.settings,args.decision_reference)
         elif args.command=='setup': out=setup(args.project,args.config,args.update,args.skills_root)
         elif args.command=='init': out=init(args.input,args.job,args.project,args.overrides)
         else:

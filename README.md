@@ -10,6 +10,8 @@ Start with [Podcast Audio Repair](#start-here-fix-a-short-podcast-sample) for no
 
 For the picture, [Video Enhance](#video-enhance) inspects the recording and hardware, offers local CPU repair or optional AI enhancement, and shows a comparison before a full render.
 
+[Editor](#editor) tightens recorded speech with proposed filler/pause cuts, reviewed retakes, occasional punch-ins and optional captions. Natural editing is the default. Edit first, then enhance the footage you keep.
+
 ## Quickstart: let your agent set it up
 
 Open your podcast project or a working folder in **Codex, Claude Code, Cursor Agent, Antigravity, or GitHub Copilot's local agent mode in VS Code**. Use a session that can read/write local files and run terminal commands.
@@ -87,6 +89,7 @@ Prefer manual setup? Continue with the [step-by-step instructions](#start-here-f
 | [Podcast Audio Repair](skills/podcast-audio-repair/SKILL.md) | Reduce background noise, even out speech levels, and cautiously test room-echo treatment | Local Python helper, RNNoise model, optional WPE code, comparison audio, and a settings report |
 | [That Radio Voice](skills/that-radio-voice/SKILL.md) | Give clean speech a fuller, denser radio sound with soft gating, EQ, compression, harmonic excitement, and peak-limited mastering | Big and Warm presets, local Python helper, WAV/MP3 exports, two comparison types, and a settings report; requires Podcast Audio Repair alongside it |
 | [Video Enhance](skills/video-enhance/SKILL.md) | Repair grain, poor lighting, softness, shake, flicker and interlacing; optionally upscale or interpolate motion | Portable CPU helper, optional Real-ESRGAN/RIFE/SeedVR2 adapters, hardware checks, preview approval and resumable renders |
+| [Editor](skills/editor/SKILL.md) | Tighten speech video with filler/pause proposals, reviewed false starts/retakes, held emphasis close-ups and optional captions | Natural/Tight/Custom styles, local word transcription or timed-transcript import, transcript review, all-track timeline edits, preview approval and resumable renders |
 
 Each capability has its own folder under `skills/`. New skills enter this catalog when they have a working, reviewable workflow.
 
@@ -378,6 +381,47 @@ Inspect `setup --engine realesrgan` or `setup --engine rife` before adding `--in
 Jobs contain inspection frames, a muted side-by-side comparison (original left, treated right), an enhanced excerpt with all audio, a review page, settings, benchmark estimates and checkpoints. MKV is the default to preserve audio codecs; MP4 is available for compatible tracks. Review face consistency, texture, text, motion, cuts, crop/borders and lip sync before accepting.
 
 Windows CPU behavior is locally exercised, and macOS/Linux CPU checks have passed in GitHub Actions. Other GPU hardware needs its own successful sample. Consult the [compatibility and validation record](skills/video-enhance/references/validation.md) before relying on a GPU path. [Repair controls](skills/video-enhance/references/repairs.md) explain broader repairs and limits, including stabilization storage, HDR metadata and VFR conversion.
+
+## Editor
+
+[Editor](skills/editor/SKILL.md) removes editorial clutter from recorded presentations and podcasts. **Natural is the default:** propose obvious hesitation sounds and long-silence trims, preserve meaning and breathing room, and suggest occasional cuts to a held 1.18× closer shot for complete emphasis phrases. Review meaning, timing, eye position and headroom before selecting those suggestions. Tight and Custom are available. False starts, repeated phrases and meaning-sensitive fillers require review; a transcript is not proof that an edit is safe. Existing saved zooms retain their recorded behavior.
+
+Install the complete `skills/editor/` folder using the [skill-location table](#documented-skill-locations), or ask your agent:
+
+```text
+Install Editor from https://github.com/rovidxmedia/AI-Media-Skills, path skills/editor.
+Preserve its scripts, references and agent metadata. Check Python, FFmpeg and ffprobe.
+Explain the optional local transcription setup and model downloads before installing
+them in an isolated cache. Preserve any existing installation and report conflicts.
+Do not render a recording during installation.
+```
+
+Then try:
+
+```text
+Use Editor on "<full path to my recording>" with Natural editing.
+Analyze the footage and speech, propose filler/pause cuts and occasional emphasis
+punch-ins, and flag false starts or alternate takes for review. Preserve meaning,
+natural delivery, my source and every audio track. Offer captions and optional
+audio repair. Confirm the edit plan, then show a representative preview for approval
+before rendering the full recording.
+```
+
+The core helper uses Python's standard library and FFmpeg. Optional local Faster-Whisper transcription runs in an isolated environment; source-bound word-timestamp JSON can be imported instead. The helper does not upload footage or require a subscription. Recognition may omit fillers, hallucinate words or misplace boundaries; review the transcript and listen around proposed cuts.
+
+```sh
+python skills/editor/scripts/editor.py doctor
+python skills/editor/scripts/editor.py analyze --input "recording.mkv" --job "runs/edit-01"
+python skills/editor/scripts/editor.py setup --cache "CACHE"
+# Explain dependencies/models first; --install installs only the optional ASR environment.
+python skills/editor/scripts/editor.py setup --cache "CACHE" --install
+```
+
+Use the same `--cache` in `analyze` and `setup`. See [the workflow reference](skills/editor/references/workflow.md) for transcription, word JSON, selections, manual cuts/zooms, captions, confirmed previews and resumable rendering. `--start`/`--seconds` on analysis deliberately make a sample-only job; omit them to cover the full recording. Sample confirmation does not authorize editing the full episode.
+
+Main outputs are H.264/FLAC MKV with every audio track/label, an edit-decision CSV, source-to-output timeline JSON, settings/verification report and optional editable SRT/ASS or burned/highlighted captions. Independent original/edited preview players reflect the different timelines; browser copies use the chosen speech track. Audio is re-encoded at 48 kHz. Original subtitles/chapters/attachments are omitted because their timing is no longer valid. HDR and flagged interlacing require an explicit preparation step. Optional audio repair is handed to the sibling Podcast Audio Repair skill when selected; it is not required for core editing.
+
+Generated fixtures exercise cuts, caption mapping, zooms, crossfades, labels, delayed audio, source protection, approval checks and interrupted renders. Windows CPU execution is locally tested; the Editor workflow runs the CPU tests on Windows/macOS/Linux. Optional ASR inference, other runtimes and human motion/listening acceptance are separate evidence. No private recordings, transcripts or models belong in public commits.
 
 ## Contribute a skill
 

@@ -47,6 +47,8 @@ python -m unittest discover -s tests -p "test_video_enhance.py" -v
 
 Keep GPU downloads out of ordinary CPU CI. Record tested hardware, model/version, actual inference results and unverified platforms in its validation reference. Inspect a real comparison before claiming perceptual improvement.
 
+For Editor, run `python -m unittest discover -s tests -p "test_editor.py" -v` with Python and FFmpeg/ffprobe. The generated tests need neither a model nor network access. Test local transcription separately in its isolated optional environment; do not infer recognition quality or safe word cuts from technical timing checks. Keep all real transcripts, source-bound job files and model caches outside Git.
+
 ## Keep contributions safe to share
 
 Only include media and code you can redistribute. Do not commit client recordings, credentials, generated job reports, personal machine paths, private contact details, caches, or virtual environments. For third-party assets, retain licenses, source links, and hashes where useful.

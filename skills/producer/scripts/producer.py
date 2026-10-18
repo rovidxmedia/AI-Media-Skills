@@ -262,19 +262,26 @@ def utc(value):
     return d.astimezone(timezone.utc).isoformat()
 
 
-def release(root,plan,replace=False):
+def release(root,plan,replace=False,append=False,refresh_destinations=False):
     with lock(root):
         job=load(root); states,hashes=stages(job)
         if states['review']!='completed': raise ValueError('Finish current production and quality review before preparing release')
-        if job['placements']: raise ValueError('Distribution started; reconcile existing remote IDs instead of creating a new release')
-        if job['release'] and not replace: raise ValueError('Release exists; use --replace for a revised review')
+        if replace and append: raise ValueError('Choose replace or append, not both')
+        if job['placements'] and not append: raise ValueError('Distribution started; reconcile existing remote IDs instead of creating a new release')
+        if append and not job['release']: raise ValueError('Prepare the initial release before appending placements')
+        if job['release'] and not (replace or append): raise ValueError('Release exists; use --replace for a revised review')
+        if append and job['release']['stages']!=hashes: raise ValueError('Cannot append to stale production; reconcile existing publications first')
+        if refresh_destinations:
+            job['profile']['distribution']=project_config(read(Path(job['project'])/'.producer/project.json'))['distribution']
         available={a['path']:a for s in ('package','shorts') for a in job['stages'][s]['artifacts'].values()}
         targets={d['id']:d for d in job['profile']['distribution']['destinations']}
-        placements=[]; ids=set()
+        placements=list(job['release']['placements']) if append else []
+        ids={p['id'] for p in placements}; added=[]
         for p in read(plan).get('placements',[]):
             pid=identifier(p['id']); target=targets.get(p['destination'])
             if pid in ids: raise ValueError('Duplicate placement ID')
             ids.add(pid)
+            added.append(pid)
             if not target or not target.get('account_id'): raise ValueError('Configure the exact publishing account/show before release')
             if p['route'] not in target['routes']: raise ValueError('Content route does not belong to this destination')
             action=p['action']
@@ -291,10 +298,11 @@ def release(root,plan,replace=False):
                 item.update(publish_at=utc(p['publish_at']),timezone=text(p['timezone'],'timezone'))
                 if datetime.fromisoformat(item['publish_at'])<=datetime.now(timezone.utc): raise ValueError('Choose a future release; never substitute publish-now')
             placements.append(item)
-        if not placements: raise ValueError('Choose at least one concrete placement')
+        if not added: raise ValueError('Choose at least one new concrete placement')
         body={'stages':hashes,'placements':placements}; body['signature']=sig(body)
         job['release']=body; job['approval']=None; save(root,job)
-    return {'release_signature':body['signature'],'placements':placements,'next':'Show actual files, copy, identities, visibility and schedule together for final review.'}
+    return {'release_signature':body['signature'],'placements':placements,'added':added,
+            'next':'Review new/revised placements; retained remote IDs must not be uploaded again.'}
 
 
 def current_release(job):
@@ -328,7 +336,7 @@ def intent(root,placement):
         if old and old['status']!='not-found': raise ValueError('Placement already attempted; reconcile remote state before retrying')
         if p['action']=='schedule' and datetime.fromisoformat(p['publish_at'])<=datetime.now(timezone.utc):
             raise ValueError('Release time passed; revise schedule with the user, never publish immediately')
-        key=sig({'release':r['signature'],'placement':placement})
+        key=old['operation_key'] if old else sig({'release':r['signature'],'placement':placement})
         job['placements'][placement]={'status':'submitting','operation_key':key,'attempts':(old['attempts'] if old else 0)+1,
             'results':old.get('results',[]) if old else [],'started_at':time.time()}
         save(root,job)
@@ -384,6 +392,7 @@ def main():
     a=sub.add_parser('record'); a.add_argument('--job',required=True); a.add_argument('--stage',choices=DEPS,required=True)
     a.add_argument('--receipt',required=True); a.add_argument('--replace',action='store_true')
     a=sub.add_parser('release'); a.add_argument('--job',required=True); a.add_argument('--plan',required=True); a.add_argument('--replace',action='store_true')
+    a.add_argument('--append',action='store_true'); a.add_argument('--refresh-destinations',action='store_true')
     a=sub.add_parser('approve'); a.add_argument('--job',required=True); a.add_argument('--evidence',required=True)
     for name in ('intent','receipt'):
         a=sub.add_parser(name); a.add_argument('--job',required=True); a.add_argument('--placement',required=True)
@@ -397,7 +406,7 @@ def main():
             root=Path(args.job).resolve()
             if args.command=='status': out=status(root)
             elif args.command=='record': out=record(root,args.stage,args.receipt,args.replace)
-            elif args.command=='release': out=release(root,args.plan,args.replace)
+            elif args.command=='release': out=release(root,args.plan,args.replace,args.append,args.refresh_destinations)
             elif args.command=='approve': out=approve(root,args.evidence)
             elif args.command=='intent': out=intent(root,args.placement)
             else: out=receipt(root,args.placement,args.result)

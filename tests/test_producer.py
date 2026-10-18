@@ -249,5 +249,30 @@ class ProducerTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'Release time passed'): pr.intent(self.job,'episode-video')
         self.assertEqual(pr.status(self.job)['placements'],{})
 
+    def test_append_newly_connected_destination_preserves_confirmed_release(self):
+        self.all_stages(); first=pr.release(self.job,self.plan()); self.authorize(first['release_signature'])
+        key=pr.intent(self.job,'episode-video')['operation_key']
+        pr.receipt(self.job,'episode-video',self.result('scheduled'))
+        original=copy.deepcopy(pr.load(self.job)['placements']['episode-video'])
+        self.config['distribution']['destinations'][1]['account_id']='newly-connected-show'
+        pr.write(self.configfile,self.config)
+        with patch.object(pr,'doctor',return_value={}): pr.setup(self.project,self.configfile,update=True)
+        job=pr.load(self.job); package=job['stages']['package']['artifacts']
+        additional=self.file('additional placement.json',{'placements':[{'id':'episode-audio','destination':'podcast','route':'full-audio',
+            'action':'schedule','visibility':'public','publish_at':self.publish_at,'timezone':'Etc/UTC',
+            'files':[package['audio']['path'],package['metadata']['path']],
+            'account_evidence':str(self.file('podcast account.json',{'simulated_show':'newly-connected-show'}))}]})
+        revised=pr.release(self.job,additional,append=True,refresh_destinations=True)
+        self.assertEqual(revised['added'],['episode-audio']); self.assertEqual(len(revised['placements']),2)
+        self.assertEqual(pr.load(self.job)['placements']['episode-video'],original)
+        self.assertFalse(pr.status(self.job)['publishing_permission_recorded'])
+        with self.assertRaisesRegex(ValueError,'approval'): pr.intent(self.job,'episode-audio')
+        self.authorize(revised['release_signature'])
+        with self.assertRaisesRegex(ValueError,'already attempted'): pr.intent(self.job,'episode-video')
+        second=pr.intent(self.job,'episode-audio')
+        self.assertNotEqual(key,second['operation_key'])
+        self.assertEqual(second['placement']['destination']['account_id'],'newly-connected-show')
+        with self.assertRaisesRegex(ValueError,'Duplicate placement'): pr.release(self.job,additional,append=True)
+
 
 if __name__=='__main__': unittest.main()

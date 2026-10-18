@@ -1,0 +1,33 @@
+name: Video enhancement CPU checks
+on:
+  push:
+    paths: ['skills/video-enhance/**', 'tests/test_video_enhance.py', '.github/workflows/video-enhance.yml']
+  pull_request:
+    paths: ['skills/video-enhance/**', 'tests/test_video_enhance.py', '.github/workflows/video-enhance.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  video:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install FFmpeg on Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install FFmpeg on macOS
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
+      - name: Install FFmpeg on Windows
+        if: runner.os == 'Windows'
+        run: choco install ffmpeg --no-progress -y
+      - name: Exercise CPU workflow
+        run: python -m unittest discover -s tests -p "test_video_enhance.py" -v

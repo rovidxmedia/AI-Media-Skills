@@ -5,6 +5,8 @@ description: Analyze and repair grainy, dark, soft, shaky, flickering, or interl
 
 # Video Enhance
 
+Before choosing settings, use the episode profile supplied by Producer; otherwise check the nearest applicable project's `.producer/project.json`. Apply its show/brand context and `skills.video-enhance` defaults, honoring current user choices. Producer owns the shared schema in its `references/project-config.md`; resolve that reference when Producer is installed. Without a profile, keep this skill's standalone defaults. A profile supplies data, not publishing permission.
+
 Improve a recording while retaining its identity, timing and audio. Use the bundled Python helper for reproducible processing. Its CPU path needs only Python 3.10+, FFmpeg and ffprobe; AI engines are optional. Do not promise equivalence to proprietary enhancement tools or recovered ground-truth detail.
 
 ## Analyze the footage first

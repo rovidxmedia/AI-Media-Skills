@@ -12,6 +12,8 @@ For the picture, [Video Enhance](#video-enhance) inspects the recording and hard
 
 [Editor](#editor) tightens recorded speech with proposed filler/pause cuts, reviewed retakes, occasional punch-ins and optional captions. Natural editing is the default. Edit first, then enhance the footage you keep.
 
+[Producer](#producer) coordinates the complete project: first-run show/computer setup, shared specialist preferences, editing and finishing, packaging, shorts, final review and verified distribution through the agent's supported publishing tools.
+
 ## Quickstart: let your agent set it up
 
 Open your podcast project or a working folder in **Codex, Claude Code, Cursor Agent, Antigravity, or GitHub Copilot's local agent mode in VS Code**. Use a session that can read/write local files and run terminal commands.
@@ -86,6 +88,7 @@ Prefer manual setup? Continue with the [step-by-step instructions](#start-here-f
 
 | Skill | What it does | Included |
 | --- | --- | --- |
+| [Producer](skills/producer/SKILL.md) | Manage a raw recording through episode production and distribution | First-run project configuration and machine inventory, six specialist handoffs, resumable artifact lineage, final publishing review and per-destination intent/readback ledger |
 | [Podcast Audio Repair](skills/podcast-audio-repair/SKILL.md) | Reduce background noise, even out speech levels, and cautiously test room-echo treatment | Local Python helper, RNNoise model, optional WPE code, comparison audio, and a settings report |
 | [That Radio Voice](skills/that-radio-voice/SKILL.md) | Give clean speech a fuller, denser radio sound with soft gating, EQ, compression, harmonic excitement, and peak-limited mastering | Big and Warm presets, local Python helper, WAV/MP3 exports, two comparison types, and a settings report; requires Podcast Audio Repair alongside it |
 | [Video Enhance](skills/video-enhance/SKILL.md) | Repair grain, poor lighting, softness, shake, flicker and interlacing; optionally upscale or interpolate motion | Portable CPU helper, optional Real-ESRGAN/RIFE/SeedVR2 adapters, hardware checks, preview approval and resumable renders |
@@ -94,6 +97,31 @@ Prefer manual setup? Continue with the [step-by-step instructions](#start-here-f
 | [Short-form Clips](skills/short-form-clips/SKILL.md) | Find self-contained spoken hooks and export captioned portrait clips for TikTok and YouTube Shorts | Agent-reviewed candidate ranking, source-bound word imports, stacked host/graphics and crop/fit layouts, clean/captioned videos, SRT, covers and preview acceptance |
 
 Each capability has its own folder under `skills/`. New skills enter this catalog when they have a working, reviewable workflow.
+
+## Producer
+
+Give your local agent a recording and ask:
+
+```text
+Use Producer to turn this raw recording into a finished podcast/YouTube episode,
+publishing package and shorts. Set up this project first if it is new.
+Let me review the finished package and release plan before publishing or scheduling.
+```
+
+Install `skills/producer` alongside `editor`, `video-enhance`, `podcast-audio-repair`, `that-radio-voice`, `podcast-packager` and `short-form-clips` using the skill-location table above. Install only the processing dependencies actually selected; GPU models and a broadcast voice are optional. Producer can discover different skill roots. Each specialist still works independently without a Producer project.
+
+First use collects the show's identity, host(s), subject/audience, branding, deliverables and selected destinations, and inspects the computer. It writes shared `.producer/project.json` preferences plus separate private machine reports. All six specialist skills consult their relevant project settings. Later episodes reuse setup; explicit per-episode choices override defaults. No credentials belong in the profile. See [project configuration](skills/producer/references/project-config.md).
+
+Producer coordinates actual specialist processing and keeps resumable handoffs tied to source/output hashes. It does not blindly apply every effect, reuse raw timestamps after edits, or treat a sample as the finished episode. Natural editing and a final publishing review are defaults. See [pipeline and recovery](skills/producer/references/pipeline.md).
+
+Distribution guidance covers YouTube, TikTok, Facebook, Instagram, Spreaker and Libsyn, with explicit account/content routing and exact release times. Actual upload/scheduling requires a supported authenticated connector, CLI or browser workflow; a universal uploader is not bundled. Missing access yields a prepared handoff and precise blocker. The ledger records intent before submission and read-back remote IDs/states afterward, preventing blind retries following uncertain responses. Podcast host release and downstream RSS propagation are distinct checks. See [distribution and verification](skills/producer/references/distribution.md).
+
+```sh
+python skills/producer/scripts/producer.py doctor --project "MY_PROJECT"
+python -m unittest discover -s tests -p "test_producer.py" -v
+```
+
+The standard-library coordinator needs Python 3.10+; each specialist owns its tools/models. Producer's generated-file/simulated-publisher checks do not claim real-account publishing or perceptual media quality. Keep profiles, private footage, transcripts and job receipts outside public contributions.
 
 ## Start here: fix a short podcast sample
 

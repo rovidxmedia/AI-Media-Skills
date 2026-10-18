@@ -5,6 +5,8 @@ description: Edit recorded speech video locally by proposing filler and pause re
 
 # Editor
 
+Before choosing settings, use the episode profile supplied by Producer; otherwise check the nearest applicable project's `.producer/project.json`. Apply its show/brand context and `skills.editor` defaults, honoring current user choices. Producer owns the shared schema in its `references/project-config.md`; resolve that reference when Producer is installed. Without a profile, keep this skill's standalone defaults. A profile supplies data, not publishing permission.
+
 Turn a recorded presentation, interview or podcast into a tighter version without changing its meaning. **Natural is the default:** preserve the speaker's rhythm, useful breaths and intentional pauses; use occasional cuts to a held closer shot for emphasis. Tight is optional, and Custom lets the user choose individual behaviors. The bundled helper needs Python 3.10+, FFmpeg and ffprobe; local transcription is optional. It runs independently of other skills.
 
 ## Analyze and propose

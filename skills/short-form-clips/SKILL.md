@@ -5,6 +5,8 @@ description: Find self-contained moments with strong spoken hooks in podcasts or
 
 # Short-form Clips
 
+Before choosing settings, use the episode profile supplied by Producer; otherwise check the nearest applicable project's `.producer/project.json`. Apply its show/brand context and `skills.short-form-clips` defaults, honoring current user choices. Producer owns the shared schema in its `references/project-config.md`; resolve that reference when Producer is installed. Without a profile, keep this skill's standalone defaults. A profile supplies data, not publishing permission.
+
 Deliver reviewed short videos with a strong opening, sufficient context and complete payoff. Read [workflow.md](references/workflow.md) for commands/interfaces, [selection.md](references/selection.md) for editorial judgment and [compatibility.md](references/compatibility.md) for limits. Resolve the helper relative to the installed skill.
 
 ## Understand and shortlist

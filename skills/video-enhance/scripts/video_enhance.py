@@ -118,7 +118,8 @@ def doctor(cache):
 
 def scene_cuts(source, info, *, start=0, duration=None, log=None):
     duration = duration if duration is not None else info["duration"] - start
-    result = ffmpeg(["-ss", f"{start:.9f}", "-i", source, "-t", f"{duration:.9f}",
+    # Bound the input: output-side -t cannot stop a select filter emitting no frames.
+    result = ffmpeg(["-ss", f"{start:.9f}", "-t", f"{duration:.9f}", "-i", source,
                      "-map", f"0:{info['video_index']}", "-an", "-vf",
                      "select='gt(scene,0.35)',showinfo", "-fps_mode", "vfr", "-f", "null", "-"], log=log)
     # Output timestamps are relative to the seek point.
@@ -259,7 +260,19 @@ def settings_from_args(args, job):
         raise VideoError("Chunk size must be 1..60 seconds; overlap must be >0 and <=2 seconds.")
     if args.batch < 5 or args.batch % 4 != 1 or args.tile < 32:
         raise VideoError("Temporal batch must be 4n+1 and at least 5; tile must be at least 32.")
+    encoder = getattr(args, "encoder", "software")
+    if encoder == "h264_nvenc" and media["hdr"] and args.hdr == "preserve":
+        raise VideoError("H.264 NVENC is SDR-only here; use software encoding to preserve HDR.")
+    known_cuts = []
+    if getattr(args, "cuts", None):
+        known_cuts = json.loads(Path(args.cuts).read_text(encoding="utf-8"))
+        if not isinstance(known_cuts, list) or any(type(x) not in (int, float) or not math.isfinite(x)
+                or not 0 < x < media["duration"] for x in known_cuts):
+            raise VideoError("Cuts must be a JSON list of finite source-timeline seconds inside the recording.")
+        known_cuts = sorted(set(known_cuts))
     settings = {"repairs": repairs, "style": args.style, "engine": args.engine,
+                "encoder": encoder, "known_cuts": known_cuts,
+                "ffmpeg_version": run(["ffmpeg", "-version"]).stdout.splitlines()[0],
                 "height": height, "width": width, "fps": str(rate), "native_fps": str(native_rate),
                 "interpolation": args.interpolation, "container": args.container,
                 "exposure": args.exposure, "gamma": args.gamma,
@@ -270,6 +283,8 @@ def settings_from_args(args, job):
                 "seed_model": args.seed_model, "crf": args.crf, "stabilize_zoom": args.stabilize_zoom}
     if settings["crf"] < 0 or settings["crf"] > 28 or not 0 <= settings["stabilize_zoom"] <= 10:
         raise VideoError("CRF must be 0..28; stabilization maximum zoom 0..10 percent.")
+    if encoder == "h264_nvenc" and settings["crf"] == 0:
+        raise VideoError("Choose --crf 1..28 for NVENC CQ; zero means automatic quality, not lossless.")
     settings["engine_receipts"] = {name: resolve(name, job["cache"]) for name in
                                    ({args.engine} | ({"rife"} if args.interpolation == "rife" else set()))}
     return settings
@@ -354,6 +369,12 @@ def encode_args(job, *, lossless=False):
     hdr = job["media"]["hdr"] and job["settings"]["hdr"] == "preserve"
     if lossless:
         return ["-c:v", "ffv1", "-level", "3", "-pix_fmt", "yuv444p16le" if hdr else "yuv444p", *color_args(job)]
+    if job["settings"].get("encoder") == "h264_nvenc":
+        # One-frame/flat shots can advertise different reorder depths from later shots.
+        # Disable B frames consistently so concatenation never drops a decoded frame.
+        return ["-c:v", "h264_nvenc", "-preset", "p6", "-tune", "hq", "-rc", "vbr",
+                "-cq", str(job["settings"]["crf"]), "-b:v", "0", "-bf", "0",
+                "-pix_fmt", "yuv420p", *color_args(job)]
     return ["-c:v", "libx265" if hdr else "libx264", "-preset", "medium", "-crf", str(job["settings"]["crf"]),
             "-pix_fmt", "yuv420p10le" if hdr else "yuv420p", "-threads", "2", *color_args(job)]
 
@@ -524,6 +545,7 @@ def process_segment(job, segment, destination, scratch, staged_shot=None):
                       f"trim=start_frame={trim_frame}", "setpts=PTS-STARTPTS"]
     ffmpeg(["-i", current, "-an", "-vf", ",".join(final_filters), "-frames:v", str(segment["frames"]),
             "-r", s["fps"], "-video_track_timescale", "120000", *encode_args(job), destination], log=log)
+    evidence["encoder"] = s.get("encoder", "software")
     return evidence
 
 
@@ -549,7 +571,7 @@ def verify(path, job, duration, expected_frames=None, start=0):
         expected_start = max(0, float(original.get("start_time", 0)) - float(job["media"]["format"].get("start_time", 0)) - start)
         if abs(float(actual.get("start_time", 0)) - expected_start) > 0.15:
             errors.append("Audio start offset differs from the source timeline; inspect synchronization.")
-    counts = json.loads(run(["ffprobe", "-v", "error", "-count_frames", "-select_streams", "v:0", "-show_entries",
+    counts = json.loads(run(["ffprobe", "-v", "error", "-threads", "8", "-count_frames", "-select_streams", "v:0", "-show_entries",
                             "stream=nb_read_frames", "-of", "json", path]).stdout)
     frame_count = int(counts["streams"][0]["nb_read_frames"])
     if expected_frames is not None and frame_count != expected_frames:
@@ -575,6 +597,7 @@ def process_range(job, root, start, duration, *, resume=False):
     cuts = state.get("cuts")
     if cuts is None:
         cuts = scene_cuts(job["source"]["path"], job["media"], start=start, duration=duration, log=root / "processing.log")
+        cuts = sorted(set(cuts) | {c for c in job["settings"].get("known_cuts", []) if start < c < start + duration})
         state["cuts"] = cuts
         write_json(state_file, state)
     if "stabilize" in job["settings"]["repairs"]:
@@ -624,9 +647,11 @@ def process_range(job, root, start, duration, *, resume=False):
         ffmpeg(["-i", job["source"]["path"], "-ss", f"{start:.9f}", "-t", f"{duration:.9f}",
                 "-map", "0:a", "-map_metadata", "0", "-map_chapters", "-1", "-c:a", "copy",
                 "-avoid_negative_ts", "disabled", audio_source], log=root / "processing.log")
+    # Keep the final partial grid frame; audio was bounded independently above.
+    video_duration = sum(s["frames"] for s in segments) / float(Fraction(job["settings"]["fps"]))
     ffmpeg(["-copyts", "-f", "concat", "-safe", "1", "-i", concatenation,
             "-i", audio_source, "-map", "0:v:0", "-map", "1:a?", "-map_metadata", "1",
-            "-map_chapters", "-1", "-c", "copy", "-t", f"{duration:.9f}", "-avoid_negative_ts", "disabled",
+            "-map_chapters", "-1", "-c", "copy", "-t", f"{max(duration, video_duration):.9f}", "-avoid_negative_ts", "disabled",
             "-metadata:s:v:0", "rotate=0", destination], log=root / "processing.log")
     verification = verify(destination, job, duration, sum(s["frames"] for s in segments), start=start)
     state["output"] = str(destination)
@@ -660,6 +685,10 @@ def preview(args):
     with job_lock(folder):
         check_source(job)
         job["settings"] = settings_from_args(args, job)
+        if job["settings"]["encoder"] == "h264_nvenc":
+            # A compiled encoder or GPU inventory is insufficient; exercise the real driver.
+            ffmpeg(["-f", "lavfi", "-i", "color=size=128x128:rate=30:duration=0.1", "-an",
+                    *encode_args(job), "-f", "null", "-"])
         job["approval"] = None
         job["preview"] = None
         require_filters(job)
@@ -710,6 +739,9 @@ def render(args, resume=False):
         for name, old in job["settings"]["engine_receipts"].items():
             if resolve(name, job["cache"]) != old:
                 raise VideoError("Engine installation changed. Create and review a new preview.")
+        ffmpeg_version = run(["ffmpeg", "-version"]).stdout.splitlines()[0]
+        if job["settings"].get("ffmpeg_version", ffmpeg_version) != ffmpeg_version:
+            raise VideoError("FFmpeg changed. Create and review a new preview.")
         require_filters(job)
         job["approval"] = current
         write_json(folder / "job.json", job)
@@ -745,6 +777,9 @@ def parser():
     p.add_argument("--fps", default="source", help="source, 60, 60000/1001, etc.")
     p.add_argument("--interpolation", choices=("none", "motion", "rife"), default="none")
     p.add_argument("--container", choices=("mkv", "mp4"), default="mkv")
+    p.add_argument("--encoder", choices=("software", "h264_nvenc"), default="software",
+                   help="Optional NVIDIA hardware H.264 encoding; restoration engine is independent")
+    p.add_argument("--cuts", type=Path, help="JSON list of known edit/layout boundaries in source-timeline seconds")
     p.add_argument("--starts", default="0", help="Comma-separated excerpt starts in seconds")
     p.add_argument("--seconds", type=float, default=10)
     p.add_argument("--exposure", type=float, default=0, help="Restrained brightness lift, -2..2; see repair reference")

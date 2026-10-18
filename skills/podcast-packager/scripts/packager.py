@@ -144,8 +144,23 @@ def verify(path, duration=None, require_video=False):
     if duration is not None and abs(number(media['format']['duration'])-duration)>.2:
         raise ValueError('Output duration differs from the source')
     if require_video and (not video(media) or not audio(media)): raise ValueError('MP4 must contain picture and sound')
-    run(['ffmpeg','-v','error','-i',path,'-map','0:v?','-map','0:a?','-f','null','-'])
+    run(['ffmpeg','-v','error','-threads','8','-i',path,'-map','0:v?','-map','0:a?','-f','null','-'])
     return {'decoded':True,'duration':number(media['format']['duration']),'audio_tracks':len(audio(media))}
+
+
+def require_copy_compatible(media):
+    v = video(media)
+    if not v or v.get('codec_name')!='h264' or v.get('pix_fmt')!='yuv420p' or v.get('sample_aspect_ratio') not in (None,'1:1'):
+        raise ValueError('H.264 copy requires square-pixel yuv420p H.264 video; choose encode for conversion')
+    rotations = [v.get('tags',{}).get('rotate',0)] + [d.get('rotation',0) for d in v.get('side_data_list',[])]
+    if any(number(r)%360 for r in rotations) or v.get('field_order') not in (None,'unknown','progressive') or v.get('color_transfer') in ('smpte2084','arib-std-b67'):
+        raise ValueError('H.264 copy requires unrotated progressive SDR video; prepare or encode explicitly')
+
+
+def decoded_frames(path):
+    result = json.loads(run(['ffprobe','-v','error','-threads','8','-select_streams','v:0',
+                            '-count_frames','-show_entries','stream=nb_read_frames','-of','json',path]))
+    return int(result['streams'][0]['nb_read_frames'])
 
 
 def package(args):
@@ -159,7 +174,9 @@ def package(args):
         else:
             if (root/'package-config.json').exists(): raise ValueError('Package already started; use resume or a new job')
             config = {'metadata':metadata(json.loads(Path(args.metadata).read_text(encoding='utf-8')),job['duration']),
-                      'square':str(Path(args.square).resolve()),'wide':str(Path(args.wide).resolve())}
+                      'square':str(Path(args.square).resolve()),'wide':str(Path(args.wide).resolve()),
+                      'video_mode':getattr(args,'video_mode','encode')}
+            if config['video_mode']=='h264-copy': require_copy_compatible(job['media'])
             config['asset_hashes'] = {k:digest(config[k]) for k in ('square','wide')}
             write(root/'package-config.json',config)
         for k in ('square','wide'):
@@ -199,10 +216,19 @@ def package(args):
                     inputs = ['-i',source] if v else ['-loop','1','-framerate','30','-i',root/'featured-wide.jpg','-i',source]
                     ai = 0 if v else 1
                     vf = 'scale=trunc(iw*sar/2)*2:trunc(ih/2)*2,setsar=1' if v else 'scale=1920:1080,setsar=1'
-                    ffmpeg([*inputs,'-map',f"0:{v['index']}" if v else '0:v:0','-map',f"{ai}:a:{job['audio_track']}",'-vf',vf,*af,
-                        '-c:v','libx264','-crf','18','-preset','fast','-pix_fmt','yuv420p','-c:a','aac','-b:a','192k',
+                    copying = config.get('video_mode','encode')=='h264-copy'
+                    if copying: require_copy_compatible(job['media'])
+                    picture = ['-c:v','copy'] if copying else ['-vf',vf,'-c:v','libx264','-crf','18','-preset','fast','-pix_fmt','yuv420p']
+                    ffmpeg([*inputs,'-map',f"0:{v['index']}" if v else '0:v:0','-map',f"{ai}:a:{job['audio_track']}",*af,
+                        *picture,'-c:a','aac','-b:a','192k',
                         '-t',job['duration'],*tags,'-movflags','+faststart',partial],log=log)
                 state['verified'][name]=verify(partial,job['duration'],require_video=name.endswith('.mp4'))
+                if name.endswith('.mp4') and config.get('video_mode')=='h264-copy':
+                    original, actual = video(job['media']), video(probe(partial))
+                    expected, received = decoded_frames(source), decoded_frames(partial)
+                    if expected!=received or any(original[k]!=actual[k] for k in ('width','height')):
+                        raise ValueError('Copied video geometry or decoded frame count changed')
+                    state['verified'][name]['frames'] = received
             partial.replace(output)
             state['completed'][name] = digest(output)
             write(state_path,state)
@@ -213,6 +239,7 @@ def package(args):
         write(root/'metadata.json',meta)
         check_source(job)
         report = {'source_unchanged':True,'signature':signature,'audio_track':job['audio_track'],
+            'video_mode':config.get('video_mode','encode'),
             'unselected_audio_tracks':len(audio(job['media']))-1,'metadata':meta,'artwork':state['artwork'],
             'files':state['completed'],'verified':state['verified'],'core_elapsed_seconds_this_run':time.monotonic()-started,
             'versions':{'ffmpeg':run(['ffmpeg','-version']).splitlines()[0]},
@@ -238,6 +265,8 @@ def parser():
     a.add_argument('--audio-track',type=int,default=0)
     a = sub.add_parser('package')
     for flag in ('job','metadata','square','wide'): a.add_argument('--'+flag,required=True)
+    a.add_argument('--video-mode',choices=('encode','h264-copy'),default='encode',
+                   help='Copy a compatible H.264 master without another lossy video encode')
     a = sub.add_parser('resume'); a.add_argument('--job',required=True)
     return p
 

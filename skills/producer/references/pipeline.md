@@ -23,6 +23,16 @@ Preserve the original and source SHA. Select a complete dialogue mix without sum
 
 Structural preparation precedes editing when necessary; ordinary enhancement follows cuts to avoid expensive work on discarded footage. Compare new emphasis crops with source softness. After duration-changing work, obtain timings tied to the new master; after duration-preserving remux/enhancement, verify geometry/rate and timestamp mapping and rebind only when actually valid. Never change a transcript's source hash merely to bypass validation. Final chapters, covers and short bounds share the final timeline.
 
+## Lessons from complete episode runs
+
+Reuse approved same-episode edits, graphics and corrected words when their provenance and alignment are verified. For a remapped transcript, retain the edit mapping and check representative speech throughout the timeline; for a picture-only change or remux, decoded-audio identity provides stronger evidence than matching container durations. Record the alignment evidence and exact new master hash. A matching filename or nominal frame rate is insufficient.
+
+Pass known edit and layout boundaries to Video Enhance's `preview --cuts CUTS.json` as source-timeline seconds. Visual scene detection may miss talking-head jump cuts; these boundaries keep temporal cleanup within each shot. Choose its optional `--encoder h264_nvenc` only after a successful runtime trial and actual preview. Hardware encoding is independent of neural restoration. Software remains the portable default; record the encoder, engine, settings, version and measured performance in the child report.
+
+Check the joined master by **decoded frame count**, complete decoding, audio retention and synchronization. Packet counts and nominal duration can pass while a concatenated hardware-encoded stream loses a displayed frame. If verification fails, stop downstream exports, preserve failed evidence, repair the encoding/join and reverify. Rebind transcript and downstream jobs to the corrected master; do not relax checks or replace a hash just to advance the ledger.
+
+When the verified master is already compatible H.264, Podcast Packager's `package --video-mode h264-copy` avoids another lossy picture encode. Its selected audio mix is still exported as AAC; ordinary encoding handles sources needing conversion. Review actual short openings/endings and their captions, including the last word and the following source phrase. ASR timing near a long pause can include an unwanted partial word; correct the bounds from listening and regenerate that clip before delivery.
+
 ## Commands
 
 Examples abbreviate the installed helper path and use explicit external job directories. The agent gathers setup answers and writes JSON; the user need not hand-author it.
@@ -64,3 +74,5 @@ Use child `resume` commands only under their unchanged accepted plan and source.
 ## Validation limits
 
 Producer tests use generated local files and simulated publisher readbacks to exercise setup, portability, defaults, lineage, final transcript binding, stale artifacts, review authorization, schedule validation, uncertain retries, destination mismatch and receipt persistence. They do not establish ASR accuracy, good editing, good art, connector authentication or successful real uploads. Specialist suites cover their actual media engines. Review real treatment samples and complete finished deliverables before claiming quality acceptance.
+
+A complete private episode was exercised on Windows in October 2026: first-run setup, approved Natural editing, audio repair, conventional 1080p-to-4K/30 finishing, final-word alignment, MP3/MP4, separate artwork/copy and four captioned portrait shorts. Full media decoding and source preservation passed, and the user reviewed the deliverables. This establishes that tested local workflow, not universal hardware support or live publishing. Private profiles, recordings, transcripts, artwork, account details and reports are excluded from this repository.

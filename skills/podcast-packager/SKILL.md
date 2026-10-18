@@ -24,7 +24,7 @@ Deliver MP3, MP4, two separately composed images and ready-to-paste copy. Read [
 
 ## Assemble and review
 
-8. Write metadata JSON and run `package` with both image paths. It embeds square art/tags in a 256 kb/s MP3 and exports H.264/AAC MP4 with fast start. Audio-only input gets a static wide-art MP4 at 1080p/30. Existing video retains display geometry and timing. No new editing, mastering, interpolation or restoration is implied.
+8. Write metadata JSON and run `package` with both image paths. It embeds square art/tags in a 256 kb/s MP3 and exports H.264/AAC MP4 with fast start. For an already compatible H.264 master, the optional copy mode in [workflow.md](references/workflow.md) avoids another lossy video encode. Audio-only input gets a static wide-art MP4 at 1080p/30. Existing video retains display geometry and timing. No new editing, mastering, interpolation or restoration is implied.
 9. Open `review.html`, show actual images and playable media. Review copy accuracy, artwork text, first/last audio, selected mix and lip sync. Report automated checks separately from human quality review. `resume` requires unchanged inputs; revised creative settings need a new job.
 10. Deliver media, both images, audio/video copy, metadata, optional chapters and verification report. State any pending review. Packaging does **not** authorize publishing, scheduling or messaging.
 

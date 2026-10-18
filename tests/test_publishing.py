@@ -67,6 +67,32 @@ class PackagerTests(Fixture):
                        'tags':['test'],'chapters':[{'start':0,'title':'Opening'}]})
         return NS(job=str(root),metadata=str(meta),square=str(self.square),wide=str(self.wide),resume=False)
 
+    def test_copy_export_keeps_decoded_picture_and_selected_mix(self):
+        args=self.config(); args.video_mode='h264-copy'
+        pk.package(args); root=Path(args.job)
+        def picture(path):
+            return pk.run(['ffmpeg','-v','error','-i',path,'-map','0:v:0','-an','-f','framemd5','-'])
+        # Compare decoded pixels, not packet counts or nominal header duration.
+        def hashes(value): return [line.split(',')[-1].strip() for line in value.splitlines() if not line.startswith('#')]
+        self.assertEqual(hashes(picture(self.source)),hashes(picture(root/'episode.mp4')))
+        self.assertAlmostEqual(tone_frequency(root/'episode.mp4'),880,delta=12)
+        report=json.loads((root/'report.json').read_text())
+        self.assertEqual(report['video_mode'],'h264-copy')
+        self.assertEqual(report['verified']['episode.mp4']['frames'],120)
+        before=pk.digest(root/'episode.mp4'); args.resume=True; pk.package(args)
+        self.assertEqual(before,pk.digest(root/'episode.mp4'))
+        self.assertEqual(pk.digest(self.source),self.source_hash)
+
+    def test_copy_rejects_conversion_requirements(self):
+        media=pk.probe(self.source)
+        pk.require_copy_compatible(media)
+        for change in ({'codec_name':'hevc'},{'pix_fmt':'yuv420p10le'},
+                       {'sample_aspect_ratio':'4:3'},{'tags':{'rotate':'90'}},
+                       {'side_data_list':[{'rotation':-90}]},{'color_transfer':'smpte2084'},
+                       {'field_order':'tt'}):
+            altered=copy.deepcopy(media); pk.video(altered).update(change)
+            with self.assertRaisesRegex(ValueError,'copy requires'): pk.require_copy_compatible(altered)
+
     def test_video_package_embeds_art_and_exports_selected_mix(self):
         args=self.config(); result=pk.package(args); root=Path(args.job)
         for filename,dimensions in [('cover-square.jpg',[3000,3000]),('featured-wide.jpg',[3840,2160])]:

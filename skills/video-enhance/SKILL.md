@@ -54,6 +54,8 @@ python skills/video-enhance/scripts/video_enhance.py preview --job "runs/video-0
 
 `--starts` must lie inside the file. `--height` is the final image height; aspect ratio is retained. No repair is implicitly enabled by the helper. `--style` controls conservative/strong denoising and Real-ESRGAN blending; it does not independently select an AI engine. Set exposure/color controls only when those repairs are selected.
 
+For edited programs, supply known edit/layout boundaries using `--cuts CUTS.json` (a JSON list of source-timeline seconds); these supplement detected cuts so temporal cleanup cannot span subtle jump cuts. Optional `--encoder h264_nvenc` uses NVIDIA hardware H.264 encoding after a runtime trial. It changes encoding, not restoration, and requires a matching preview; software encoding remains the default. See [engine guidance](references/engines.md) for limits.
+
 Return the enhanced excerpt, side-by-side comparison, preview report, measured render/storage estimates, selected engine and any failure. The comparison places original on the left and treated on the right; it is muted. The enhanced file retains all original audio tracks. Compare lip sync there. Present the local review HTML or video when the host supports it.
 
 Inspect faces, skin, hair, teeth, text, logos, fabric patterns, motion, scene cuts, stabilization borders and flicker. Check for temporal shimmer, invented detail and interpolation warping. If the agent cannot view motion, state that limitation and leave human visual approval pending. Read [validation.md](references/validation.md) for acceptance evidence.

@@ -114,6 +114,8 @@ First use collects the show's identity, host(s), subject/audience, branding, del
 
 Producer coordinates actual specialist processing and keeps resumable handoffs tied to source/output hashes. It does not blindly apply every effect, reuse raw timestamps after edits, or treat a sample as the finished episode. Natural editing and a final publishing review are defaults. See [pipeline and recovery](skills/producer/references/pipeline.md).
 
+A full private episode has been exercised and reviewed locally through 4K finishing, MP3/MP4, artwork/copy and four portrait shorts. The resulting guidance covers verified reuse of approved assets, exact-master word alignment, decoded-frame validation and clean clip endings. Optional Video Enhance NVIDIA encoding and Packager H.264 copy export avoid unnecessary encoding work where compatible; software processing remains the default. This test did not publish or schedule media.
+
 Distribution guidance covers YouTube, TikTok, Facebook, Instagram, Spreaker and Libsyn, with explicit account/content routing and exact release times. Actual upload/scheduling requires a supported authenticated connector, CLI or browser workflow; a universal uploader is not bundled. Missing access yields a prepared handoff and precise blocker. The ledger records intent before submission and read-back remote IDs/states afterward, preventing blind retries following uncertain responses. Podcast host release and downstream RSS propagation are distinct checks. See [distribution and verification](skills/producer/references/distribution.md).
 
 ```sh

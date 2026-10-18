@@ -43,6 +43,14 @@ The adapter checks the isolated PyTorch environment's selected CUDA/MPS backend 
 
 Only allocation failures trigger memory retries. NCNN tiles reduce to 32; SeedVR2 temporal batches reduce to five, never one. Other failures stop with the relevant log. If the selected result still cannot fit, propose a different engine/output and generate a new preview. Completed chunks retain actual model and retry details.
 
+## Optional hardware encoding
+
+`preview --encoder h264_nvenc` selects FFmpeg's installed NVIDIA H.264 encoder independently of `--engine`. It runs a tiny actual encoding trial before preview processing, then uses preset p6, HQ tuning, VBR and CQ from `--crf` (1–28; default 18). CQ and software CRF values are not quality-equivalent; compare the actual preview. HDR preservation uses software encoding. No silent encoder fallback occurs. Versions and selected encoder are saved in settings/checkpoints; a changed selection needs a fresh preview.
+
+NVENC chunks consistently disable B frames. In a real run, flat opening shots advertised a different reorder depth from later shots; their joined packet count was correct but decoding lost a frame. Disabling B frames avoids that mismatch even for one-frame shots, at some compression-efficiency cost. The final joined file still requires an exact decoded frame count and full decoding. CPU filters and lossless staging remain in this path; hardware encoding does not imply GPU denoising or a fully fused GPU pipeline.
+
+Windows RTX A4500/FFmpeg 7.0 was exercised locally. Other NVIDIA cards, drivers and operating systems require their own successful preview; this is not a claim of tested macOS hardware encoding. See [validation](validation.md) for opt-in test commands.
+
 ## Maintained source contract
 
 - [FFmpeg filters](https://ffmpeg.org/ffmpeg-filters.html)

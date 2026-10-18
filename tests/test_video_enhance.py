@@ -165,6 +165,59 @@ class VideoIntegrationTests(unittest.TestCase):
                                            "--style", "natural", "--starts", "0.25", "--seconds", "1.5",
                                            "--chunk-seconds", "1", *options])
 
+    def test_scene_scan_stops_decoding_at_excerpt_end_even_without_cuts(self):
+        source = self.folder / "static.mkv"
+        video.ffmpeg(["-f", "lavfi", "-i", "color=size=160x96:rate=30:duration=3", "-c:v", "libx264", source])
+        invoke = video.ffmpeg
+        observed = []
+        def inspect(values, **kwargs):
+            values = list(values)
+            vf = values.index("-vf") + 1
+            # Instrument the actual decoded input before scene selection discards it.
+            values[vf] = "showinfo," + values[vf]
+            result = invoke(values, **kwargs)
+            import re
+            observed.extend(float(x) for x in re.findall(r"pts_time:([\d.eE+-]+)", result.stderr))
+            return result
+        with patch.object(video, "ffmpeg", side_effect=inspect):
+            video.scene_cuts(source, video.probe(source), start=.5, duration=.5)
+        self.assertTrue(observed)
+        self.assertLess(max(observed), .55)
+
+    def grid_excerpt(self, encoder):
+        source = self.folder / "grid source.mkv"
+        video.ffmpeg(["-f", "lavfi", "-i", "testsrc2=size=192x108:rate=30:duration=2", "-c:v", "libx264", source])
+        cuts = self.folder / "cuts.json"
+        cuts.write_text(json.dumps([1/30, .1, .5]), encoding="utf-8")
+        _, job = video.load_job(self.folder)
+        job["source"], job["media"] = video.fingerprint(source), video.probe(source)
+        job["settings"] = video.settings_from_args(self.args("--repairs", "denoise,sharpen", "--encoder", encoder, "--cuts", str(cuts)), job)
+        state = video.process_range(job, self.folder / "grid", 0, 1.544)
+        self.assertEqual(state["verification"]["frames"], 47)
+        self.assertEqual(state["completed"]["0"]["segment"]["frames"], 1)
+        self.assertEqual(state["cuts"], [1/30, .1, .5])
+        before = {k: v["sha256"] for k, v in state["completed"].items()}
+        resumed = video.process_range(job, self.folder / "grid", 0, 1.544, resume=True)
+        self.assertEqual(before, {k: v["sha256"] for k, v in resumed["completed"].items()})
+        self.assertEqual(engines.digest(source), job["source"]["sha256"])
+
+    def test_partial_frame_grid_and_known_one_frame_shots(self):
+        self.grid_excerpt("software")
+
+    @unittest.skipUnless(os.environ.get("VIDEO_ENHANCE_TEST_NVENC"), "Set VIDEO_ENHANCE_TEST_NVENC for real NVIDIA encoding")
+    def test_nvenc_join_short_shots_decodes_every_frame(self):
+        self.grid_excerpt("h264_nvenc")
+
+    def test_invalid_known_cut_and_hdr_encoder_are_rejected(self):
+        _, job = video.load_job(self.folder)
+        cuts = self.folder / "cuts.json"
+        cuts.write_text('[NaN]', encoding="utf-8")
+        with self.assertRaisesRegex(video.VideoError, "finite"):
+            video.settings_from_args(self.args("--cuts", str(cuts)), job)
+        job["media"]["hdr"] = True
+        with self.assertRaisesRegex(video.VideoError, "SDR-only"):
+            video.settings_from_args(self.args("--encoder", "h264_nvenc", "--hdr", "preserve"), job)
+
     def test_preview_render_audio_labels_source_and_resume(self):
         preview = video.preview(self.args("--repairs", "denoise,exposure,color,sharpen,deblock,deband",
                                           "--gamma", "1.1", "--fps", "24", "--interpolation", "motion"))

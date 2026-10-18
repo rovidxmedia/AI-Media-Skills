@@ -42,11 +42,15 @@ Coverage must include the entire analysis scope and the source SHA-256 must matc
 python scripts/editor.py update --job "JOB" --reject cut-0001
 python scripts/editor.py update --job "JOB" --select cut-0003
 python scripts/editor.py update --job "JOB" --cut 12.2:13.4 --reason "Reviewed false start; next take is complete"
-python scripts/editor.py update --job "JOB" --zoom 45:49 --zoom-scale 1.08 --center 0.5 0.4 --reason "Key conclusion"
+python scripts/editor.py update --job "JOB" --zoom 45:51 --zoom-scale 1.18 --center 0.5 0.4 --reason "Reviewed complete key conclusion and eye framing"
 python scripts/editor.py update --job "JOB" --captions highlight --highlight-words "important,remember"
 ```
 
 Manual cut/zoom times are source times within scope. Reject a candidate when its word is meaningful, overlaps quiet speech, misidentifies the preferred take, or changes emphasis. Selected overlapping zooms are rejected, rather than combined into an excessive crop. Keep subtitles `off`, export `srt`, or render `burn`/`highlight` (requires FFmpeg's libass/subtitles filter). ASS/HTML content is escaped; local generated subtitle filenames avoid fragile font-path/filter escaping. Actual font availability varies.
+
+New emphasis events default to `motion: cut`, `scale: 1.18`, and `sampling: 2x-lanczos-yuv444p`. They cut closer on the first frame at/after `start`, hold a constant scale, and cut wide on the first frame at/after `end`. The state persists over technical chunks. The review page lists proposed framing alongside the cut list. Automatic phrase suggestions remain unselected until editorial review; use `--select ID` only after confirming the complete phrase and framing, or reject/replace the candidate with explicit `--zoom START:END` bounds.
+
+`update --zoom-motion pulse` explicitly requests the old entrance/exit treatment for a new event. Existing events missing `motion` continue using that legacy pulse with their saved values and sampling path. The helper never silently changes an existing job to the new default; create/review a revised plan when changing a saved treatment. See [framing guidance](editing.md#held-close-up-framing) for the anchor and resolution tradeoff.
 
 The plan supports `crossfade_ms` (0–20, default 8), `chunk_seconds` (1–60, default 20) and manual selection/settings changes. Natural/Tight pause thresholds affect proposal generation; if changing these values, revise the candidate ranges too rather than assuming the existing proposal recalculates. `propose` regenerates candidates and discards prior manual selections; use `update` to retain existing edits.
 

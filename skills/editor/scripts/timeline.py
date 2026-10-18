@@ -8,9 +8,9 @@ import re
 
 STYLES = {
     "natural": {"pause_threshold": 0.9, "pause_keep": 0.4, "word_guard": 0.08,
-                "filler_confidence": 0.85, "zoom_scale": 1.08, "zoom_spacing": 45.0},
+                "filler_confidence": 0.85, "zoom_scale": 1.18, "zoom_motion": "cut", "zoom_spacing": 45.0},
     "tight": {"pause_threshold": 0.55, "pause_keep": 0.22, "word_guard": 0.06,
-              "filler_confidence": 0.8, "zoom_scale": 1.12, "zoom_spacing": 25.0},
+              "filler_confidence": 0.8, "zoom_scale": 1.18, "zoom_motion": "cut", "zoom_spacing": 25.0},
 }
 
 
@@ -102,10 +102,20 @@ def propose(words, silences, scope, style="natural"):
                 break
         cue = word["emphasis"] or token in {"important", "remember", "crucial"}
         if cue and (not zooms or word["start"] - zooms[-1]["start"] >= settings["zoom_spacing"]):
-            zooms.append({"id": f"zoom-{len(zooms)+1:04d}", "start": max(scope[0], word["start"] - 0.2),
-                          "end": min(scope[1], word["start"] + 4), "scale": settings["zoom_scale"],
-                          "center_x": 0.5, "center_y": 0.4, "selected": True,
-                          "reason": "Possible emphasis phrase; agent must verify meaning and framing"})
+            # A cue is only a suggestion. Prefer a spoken sentence boundary to
+            # a fixed timer; sparse punctuation/long gaps require agent review.
+            end = word["end"]
+            for following in words[i:]:
+                if following["start"] - word["start"] > 12 or following["start"] - end > 1.5:
+                    break
+                end = following["end"]
+                if re.search(r'[.!?]["\')\]]*$', following["word"]):
+                    break
+            zooms.append({"id": f"zoom-{len(zooms)+1:04d}", "start": word["start"],
+                          "end": min(scope[1], end), "scale": settings["zoom_scale"],
+                          "motion": settings["zoom_motion"], "sampling": "2x-lanczos-yuv444p",
+                          "center_x": 0.5, "center_y": 0.4, "selected": False,
+                          "reason": "Possible emphasis; review the whole phrase, timing and eye anchor before selecting"})
     return {"style": style, "settings": settings, "cuts": cuts, "zooms": zooms,
             "captions": "off", "highlight_words": [], "crossfade_ms": 8,
             "audio_cleanup": "off", "container": "mkv", "chunk_seconds": 20}
@@ -138,6 +148,10 @@ def validate_plan(job):
             if kind == "zooms" and (not 1 <= number(item["scale"]) <= 1.25 or
                     not all(0 <= number(item[k]) <= 1 for k in ("center_x", "center_y"))):
                 raise ValueError("Invalid zoom scale/center")
+            if kind == "zooms" and item.get("motion", "pulse") not in ("cut", "pulse"):
+                raise ValueError("Invalid zoom motion; choose cut or pulse")
+            if kind == "zooms" and item.get("sampling", "2x-lanczos-yuv444p") != "2x-lanczos-yuv444p":
+                raise ValueError("Invalid zoom sampling")
     zooms = sorted((z for z in plan["zooms"] if z["selected"]), key=lambda z: z["start"])
     if any(a["end"] > b["start"] for a, b in zip(zooms, zooms[1:])):
         raise ValueError("Selected zooms overlap; combine or reject one")
@@ -243,6 +257,11 @@ def captions(job, pieces):
 def review_html(job, pieces=None):
     cuts = job["plan"]["cuts"]
     rows = "".join(f"<tr><td>{html.escape(c['id'])}</td><td>{c['start']:.3f}–{c['end']:.3f}</td><td>{'proposed cut' if c['selected'] else 'review only'}</td><td>{html.escape(c['reason'])}</td></tr>" for c in cuts)
+    framing = "".join(f"<tr><td>{html.escape(z['id'])}</td><td>{z['start']:.3f}–{z['end']:.3f}</td>"
+        f"<td>{html.escape(z.get('motion', 'pulse'))} · {z['scale']:.2f}×</td>"
+        f"<td>{z['center_x']:.3f}, {z['center_y']:.3f}</td>"
+        f"<td>{'proposed framing' if z['selected'] else 'review only'}</td><td>{html.escape(z['reason'])}</td></tr>"
+        for z in job["plan"]["zooms"])
     words = []
     for w in job["words"]:
         removed = any(c["selected"] and c["start"] <= (w["start"]+w["end"])/2 < c["end"] for c in cuts)
@@ -254,4 +273,5 @@ def review_html(job, pieces=None):
     return ('<!doctype html><meta charset="utf-8"><title>Editor review</title>'
             '<style>body{font:18px system-ui;max-width:1100px;margin:30px auto;background:#151515;color:#eee}video{width:100%}td,th{padding:8px;text-align:left}del{color:#f99}span{line-height:1.8}</style>'
             '<h1>Editor: proposed transcript and cuts</h1>' + videos + '<p>' + " ".join(words) + '</p>'
-            '<table><tr><th>ID</th><th>Source seconds</th><th>Selection</th><th>Reason</th></tr>' + rows + '</table>')
+            '<table><tr><th>ID</th><th>Source seconds</th><th>Selection</th><th>Reason</th></tr>' + rows + '</table>'
+            '<h2>Framing proposals</h2><table><tr><th>ID</th><th>Source seconds</th><th>Motion / scale</th><th>Anchor x, y</th><th>Selection</th><th>Reason</th></tr>' + framing + '</table>')

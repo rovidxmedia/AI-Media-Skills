@@ -295,7 +295,10 @@ def update(args):
                 if kind == "cuts":
                     item["kind"] = "manual"
                 else:
-                    item.update(scale=args.zoom_scale, center_x=args.center[0], center_y=args.center[1])
+                    item.update(scale=args.zoom_scale, motion=args.zoom_motion,
+                                center_x=args.center[0], center_y=args.center[1])
+                    if args.zoom_motion == "cut":
+                        item["sampling"] = "2x-lanczos-yuv444p"
                 job["plan"][kind].append(item)
         if args.captions:
             job["plan"]["captions"] = args.captions
@@ -319,6 +322,31 @@ def color_args(media):
 
 
 def zoom_filter(job, piece):
+    active = [z for z in job["plan"]["zooms"] if z["selected"] and
+              z["start"] < piece["end"] and z["end"] > piece["start"]]
+    if any(z.get("motion", "pulse") == "cut" for z in active):
+        expression, cx, cy = "1", "0.5", "0.4"
+        rate = float(Fraction(job["media"]["fps"]))
+        for z in active:
+            if z.get("motion", "pulse") == "cut":
+                # Half-open frame intervals: hard cut in, hold, then cut wide.
+                # Relative frame numbers preserve the state over chunk joins.
+                a = math.ceil((z["start"]-piece["start"])*rate-1e-7)
+                b = math.ceil((z["end"]-piece["start"])*rate-1e-7)
+                gate = f"gte(on,{a})*lt(on,{b})"
+                value = str(z["scale"])
+            else:
+                a, b = z["start"]-piece["start"], z["end"]-piece["start"]
+                gate = f"between(in_time,{a:.9f},{b:.9f})"
+                value = f"1+({z['scale']}-1)*max(0,min(1,min((in_time-{a:.9f})/0.2,({b:.9f}-in_time)/0.2)))"
+            expression = f"if({gate},{value},{expression})"
+            cx = f"if({gate},{z['center_x']},{cx})"
+            cy = f"if({gate},{z['center_y']},{cy})"
+        m = job["media"]
+        return [f"scale={m['width']*2}:{m['height']*2}:flags=lanczos", "format=yuv444p",
+                f"zoompan=z='{expression}':x='(iw-iw/zoom)*({cx})':y='(ih-ih/zoom)*({cy})':d=1:s={m['width']}x{m['height']}:fps={m['fps']}",
+                "format=yuv420p"]
+    # Keep the original pulse and sampling path for saved jobs without motion.
     expression = "1"
     for z in job["plan"]["zooms"]:
         if not z["selected"] or z["start"] >= piece["end"] or z["end"] <= piece["start"]:
@@ -540,7 +568,8 @@ def parser():
     q.add_argument("--reject", action="append", default=[])
     q.add_argument("--cut", action="append", default=[], help="START:END source seconds")
     q.add_argument("--zoom", action="append", default=[], help="START:END source seconds")
-    q.add_argument("--zoom-scale", type=float, default=1.08)
+    q.add_argument("--zoom-scale", type=float, default=1.18)
+    q.add_argument("--zoom-motion", choices=("cut", "pulse"), default="cut")
     q.add_argument("--center", nargs=2, type=float, default=[0.5, 0.4])
     q.add_argument("--reason", default="Reviewed manual edit")
     q.add_argument("--captions", choices=("off", "srt", "burn", "highlight"))

@@ -89,7 +89,7 @@ Prefer manual setup? Continue with the [step-by-step instructions](#start-here-f
 | [Podcast Audio Repair](skills/podcast-audio-repair/SKILL.md) | Reduce background noise, even out speech levels, and cautiously test room-echo treatment | Local Python helper, RNNoise model, optional WPE code, comparison audio, and a settings report |
 | [That Radio Voice](skills/that-radio-voice/SKILL.md) | Give clean speech a fuller, denser radio sound with soft gating, EQ, compression, harmonic excitement, and peak-limited mastering | Big and Warm presets, local Python helper, WAV/MP3 exports, two comparison types, and a settings report; requires Podcast Audio Repair alongside it |
 | [Video Enhance](skills/video-enhance/SKILL.md) | Repair grain, poor lighting, softness, shake, flicker and interlacing; optionally upscale or interpolate motion | Portable CPU helper, optional Real-ESRGAN/RIFE/SeedVR2 adapters, hardware checks, preview approval and resumable renders |
-| [Editor](skills/editor/SKILL.md) | Tighten speech video with filler/pause proposals, reviewed false starts/retakes, subtle emphasis punch-ins and optional captions | Natural/Tight/Custom styles, local word transcription or timed-transcript import, transcript review, all-track timeline edits, preview approval and resumable renders |
+| [Editor](skills/editor/SKILL.md) | Tighten speech video with filler/pause proposals, reviewed false starts/retakes, held emphasis close-ups and optional captions | Natural/Tight/Custom styles, local word transcription or timed-transcript import, transcript review, all-track timeline edits, preview approval and resumable renders |
 
 Each capability has its own folder under `skills/`. New skills enter this catalog when they have a working, reviewable workflow.
 
@@ -384,7 +384,7 @@ Windows CPU behavior is locally exercised, and macOS/Linux CPU checks have passe
 
 ## Editor
 
-[Editor](skills/editor/SKILL.md) removes editorial clutter from recorded presentations and podcasts. **Natural is the default:** propose obvious hesitation sounds and long-silence trims, preserve meaning and breathing room, and suggest occasional subtle punch-ins around emphasis. Tight and Custom are available. False starts, repeated phrases and meaning-sensitive fillers require review; a transcript is not proof that an edit is safe.
+[Editor](skills/editor/SKILL.md) removes editorial clutter from recorded presentations and podcasts. **Natural is the default:** propose obvious hesitation sounds and long-silence trims, preserve meaning and breathing room, and suggest occasional cuts to a held 1.18× closer shot for complete emphasis phrases. Review meaning, timing, eye position and headroom before selecting those suggestions. Tight and Custom are available. False starts, repeated phrases and meaning-sensitive fillers require review; a transcript is not proof that an edit is safe. Existing saved zooms retain their recorded behavior.
 
 Install the complete `skills/editor/` folder using the [skill-location table](#documented-skill-locations), or ask your agent:
 

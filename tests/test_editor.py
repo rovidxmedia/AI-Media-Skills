@@ -57,11 +57,44 @@ class TimelineTests(unittest.TestCase):
         words = [word("important", i, i+.3) for i in (1, 10, 50)]
         p = tl.propose(words, [], [0, 60])
         self.assertEqual(len(p["zooms"]), 2)
-        self.assertEqual(p["zooms"][0]["scale"], 1.08)
+        self.assertEqual(p["zooms"][0]["scale"], 1.18)
+        self.assertEqual(p["zooms"][0]["motion"], "cut")
+        self.assertTrue(all(not z["selected"] for z in p["zooms"]))
         job = fake_job()
         job["plan"]["zooms"][0]["scale"] = 2
         with self.assertRaisesRegex(ValueError, "zoom"):
             tl.timeline(job)
+
+    def test_zoom_proposal_uses_phrase_end_and_requires_semantic_review(self):
+        words = [word('remember', 1, 1.4), word('this', 1.5, 2), word('result.', 2.1, 3.2),
+                 word('Next', 3.3, 3.6)]
+        zoom = tl.propose(words, [], [0, 6])["zooms"][0]
+        self.assertEqual((zoom['start'], zoom['end']), (1, 3.2))
+        self.assertFalse(zoom['selected'])
+        # Missing punctuation must not extend a framing cue across long silence.
+        words[2]['word'] = 'result'
+        words[3].update(start=5.5, end=5.8)
+        self.assertEqual(tl.propose(words, [], [0, 6])['zooms'][0]['end'], 3.2)
+
+    def test_legacy_zoom_is_not_migrated_or_resigned_on_read(self):
+        job = fake_job()
+        z = job['plan']['zooms'][0]
+        z.pop('motion')
+        z.pop('sampling')
+        z.update(scale=1.08, selected=True)
+        before = copy.deepcopy(job)
+        sig = tl.signature(job)
+        tl.validate_plan(job)
+        editor.zoom_filter(job, tl.timeline(job)[-1])
+        self.assertEqual(job, before)
+        self.assertEqual(tl.signature(job), sig)
+
+    def test_zoom_rejects_unknown_motion_sampling_and_nonfinite_anchor(self):
+        for key, value in [('motion', 'unknown'), ('sampling', 'unknown'), ('center_x', float('nan'))]:
+            job = fake_job()
+            job['plan']['zooms'][0][key] = value
+            with self.assertRaises(ValueError):
+                tl.validate_plan(job)
 
     def test_frame_grid_merges_overlaps_and_caption_map_follows_cuts(self):
         job = fake_job()
@@ -151,6 +184,8 @@ class IntegrationTests(unittest.TestCase):
         _, job = editor.load(cls.template)
         job["words"] = fake_job()["words"]
         job["plan"] = tl.propose(job["words"], job["silences"], job["scope"])
+        # Fixture-only editorial choice; real suggestions require plan review.
+        job["plan"]["zooms"][0]["selected"] = True
         job["plan"]["chunk_seconds"] = 2
         editor.write(cls.template/"job.json", job)
 
@@ -234,6 +269,61 @@ class IntegrationTests(unittest.TestCase):
         self.assertFalse(job["plan"]["cuts"][0]["selected"])
         self.assertEqual(job["plan"]["cuts"][-1]["kind"], "manual")
         self.assertEqual(result["plan_signature"], tl.signature(job))
+
+    def test_manual_zoom_defaults_to_held_close_up_and_clears_approval(self):
+        self.job.update(plan_approval='previous', preview={'signature':'previous'}, render_approval='previous')
+        editor.write(self.folder/'job.json', self.job)
+        editor.update(self.args('update', '--zoom', '.4:.6'))
+        _, job = editor.load(self.folder)
+        z = job['plan']['zooms'][-1]
+        self.assertEqual((z['motion'], z['scale']), ('cut', 1.18))
+        self.assertIsNone(job['plan_approval'])
+        self.assertIsNone(job['preview'])
+        self.assertIsNone(job['render_approval'])
+        editor.update(self.args('update','--zoom','.8:.9','--zoom-motion','pulse','--zoom-scale','1.08'))
+        _, job = editor.load(self.folder)
+        self.assertEqual(job['plan']['zooms'][-1]['motion'],'pulse')
+        self.assertNotIn('sampling',job['plan']['zooms'][-1])
+
+    def test_held_zoom_pixel_framing_and_anchor_survive_fractional_chunks(self):
+        source, target = self.folder/'anchor.mkv', self.folder/'anchor-job'
+        # Static gradient + bright marker at normalized anchor (0.3, 0.4).
+        image = "nullsrc=size=160x90:rate=30000/1001:duration=3,geq=lum='if(between(X,46,50)*between(Y,34,38),235,20+X/3+Y/3)':cb=128:cr=128"
+        editor.ffmpeg(['-f', 'lavfi', '-i', image, '-f', 'lavfi', '-i', 'sine=frequency=440:duration=3',
+                       '-c:v', 'libx264', '-crf', '0', '-c:a', 'flac', source])
+        editor.analyze(editor.parser().parse_args(['analyze','--input',str(source),'--job',str(target)]))
+        _, job = editor.load(target)
+        job['plan']['cuts'] = []
+        job['plan']['zooms'] = [{'id':'held','start':.4,'end':2.4,'selected':True,'scale':1.18,
+            'motion':'cut','center_x':.3,'center_y':.4,'reason':'synthetic fixture'}]
+        job['plan']['chunk_seconds'] = 1
+        chunked = editor.process(job, target/'chunked', job['scope'])['output']
+        job['plan']['chunk_seconds'] = 4
+        continuous = editor.process(job, target/'continuous', job['scope'])['output']
+        def markers(path):
+            raw = subprocess.run(['ffmpeg','-v','error','-i',path,'-map','0:v','-vf','format=gray',
+                                  '-f','rawvideo','-'],capture_output=True,check=True).stdout
+            result = []
+            for offset in range(0,len(raw),160*90):
+                pixels = raw[offset:offset+160*90]
+                points = [(i%160,i//160) for i,p in enumerate(pixels) if p>220]
+                result.append((len(points),sum(x for x,y in points)/len(points),sum(y for x,y in points)/len(points)))
+            return result
+        left, right = markers(chunked), markers(continuous)
+        self.assertEqual(len(left),len(right))
+        rate = 30000/1001
+        for n, (a,b) in enumerate(zip(left,right)):
+            self.assertLessEqual(abs(a[0]-b[0]),2)
+            for center, expected in zip(a[1:],(48,36)):
+                # Scaling/color conversion and the encoded marker threshold
+                # can shift its centroid by one pixel in this tiny fixture.
+                self.assertAlmostEqual(center,expected,delta=1.1)
+            if n/rate >= .4 and n/rate < 2.4:
+                self.assertGreater(a[0],left[0][0]*1.1)
+            else:
+                self.assertAlmostEqual(a[0],left[0][0],delta=2)
+        # Holding through both internal joins must not introduce a pulse/reset.
+        self.assertLessEqual(max(a[0] for a in left[15:70])-min(a[0] for a in left[15:70]),2)
 
     def test_silence_on_one_track_does_not_remove_another_speaker(self):
         source, target = self.folder/"overlap.mkv", self.folder/"overlap-job"

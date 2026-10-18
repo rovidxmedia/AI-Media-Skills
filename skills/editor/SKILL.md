@@ -5,7 +5,7 @@ description: Edit recorded speech video locally by proposing filler and pause re
 
 # Editor
 
-Turn a recorded presentation, interview or podcast into a tighter version without changing its meaning. **Natural is the default:** preserve the speaker's rhythm, useful breaths and intentional pauses; use gentle, occasional punch-ins. Tight is optional, and Custom lets the user choose individual behaviors. The bundled helper needs Python 3.10+, FFmpeg and ffprobe; local transcription is optional. It runs independently of other skills.
+Turn a recorded presentation, interview or podcast into a tighter version without changing its meaning. **Natural is the default:** preserve the speaker's rhythm, useful breaths and intentional pauses; use occasional cuts to a held closer shot for emphasis. Tight is optional, and Custom lets the user choose individual behaviors. The bundled helper needs Python 3.10+, FFmpeg and ffprobe; local transcription is optional. It runs independently of other skills.
 
 ## Analyze and propose
 
@@ -17,6 +17,8 @@ Resolve this skill directory and the source. Read [editing.md](references/editin
 4. Run `propose --job FOLDER --transcript FILE`. Review the transcript against the source. ASR can omit fillers, invent text and misplace word boundaries. Confidence scores do not prove a safe cut. Check hesitation sounds and words immediately before/after each proposed cut by listening; leave uncertain edits unselected. If audio perception is unavailable, say so and ask the user to review flagged cuts in the preview.
 
 Assess all requested features: fillers, repeated words, pauses, false starts, alternate takes, setup/trailing dead air, emphasis punch-ins, captions and optional audio repair. The helper flags repeated phrases and incomplete-word punctuation, but the agent must identify sentence-level abandoned takes and determine which complete take to retain. Use `update` for verified manual cuts, selections/rejections and phrase-based zooms; do not mistake algorithmic flags for editorial judgment.
+
+For emphasis, default to a **held 1.18× close-up**: cut closer at the start of a meaningful phrase, hold through the complete thought, then cut wide at the next idea. Check eye position and headroom at entry, middle and exit; reduce the crop if movement or source softness requires it. Keyword cues remain unselected until meaning, phrase bounds and framing are reviewed. See [editing.md](references/editing.md) for the framing criteria and legacy-job behavior.
 
 Present the proposed treatment with examples/timestamps, estimated time removed, uncertain words/takes, zoom framing, caption choice and audio-track behavior. Explicitly offer **Natural / Tight / Custom** when preferences are missing, recommending Natural. Captions and sound repair are optional and off by default; offer editable SRT, burned captions or selected-word emphasis when relevant. Never remove meaning-sensitive words just because they match a filler list, or apply a zoom to every jump cut.
 

@@ -1,4 +1,4 @@
 interface:
   display_name: "Editor"
-  short_description: "Natural speech edits, pause cleanup and subtle punch-ins"
-  default_prompt: "Use $editor to analyze my recording with Natural editing, propose filler/pause cuts and occasional punch-ins, confirm the edit plan, then show a preview for approval before rendering."
+  short_description: "Natural speech edits with held emphasis close-ups"
+  default_prompt: "Use $editor to analyze my recording with Natural editing, propose filler/pause cuts and occasional held close-ups, confirm the edit plan, then show a preview for approval before rendering."

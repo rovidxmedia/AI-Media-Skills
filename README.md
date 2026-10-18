@@ -90,6 +90,8 @@ Prefer manual setup? Continue with the [step-by-step instructions](#start-here-f
 | [That Radio Voice](skills/that-radio-voice/SKILL.md) | Give clean speech a fuller, denser radio sound with soft gating, EQ, compression, harmonic excitement, and peak-limited mastering | Big and Warm presets, local Python helper, WAV/MP3 exports, two comparison types, and a settings report; requires Podcast Audio Repair alongside it |
 | [Video Enhance](skills/video-enhance/SKILL.md) | Repair grain, poor lighting, softness, shake, flicker and interlacing; optionally upscale or interpolate motion | Portable CPU helper, optional Real-ESRGAN/RIFE/SeedVR2 adapters, hardware checks, preview approval and resumable renders |
 | [Editor](skills/editor/SKILL.md) | Tighten speech video with filler/pause proposals, reviewed false starts/retakes, held emphasis close-ups and optional captions | Natural/Tight/Custom styles, local word transcription or timed-transcript import, transcript review, all-track timeline edits, preview approval and resumable renders |
+| [Podcast Packager](skills/podcast-packager/SKILL.md) | Create grounded publishing copy, separate square/wide artwork, MP3 and MP4 from a finished episode | Local export helper, embedded cover, chapter text, metadata, review page and verification; artwork generation uses the agent's selected image capability |
+| [Short-form Clips](skills/short-form-clips/SKILL.md) | Find self-contained spoken hooks and export captioned portrait clips for TikTok and YouTube Shorts | Agent-reviewed candidate ranking, source-bound word imports, crop/fit layouts, clean/captioned videos, SRT, covers and preview acceptance |
 
 Each capability has its own folder under `skills/`. New skills enter this catalog when they have a working, reviewable workflow.
 
@@ -426,6 +428,50 @@ Generated fixtures exercise cuts, caption mapping, zooms, crossfades, labels, de
 ## Contribute a skill
 
 Have a useful, repeatable media workflow? See [CONTRIBUTING.md](CONTRIBUTING.md) for the folder format, evidence expectations, and review checks.
+
+## Podcast Packager and Short-form Clips
+
+Use these after the finished edit. Both export helpers run locally with Python 3.10+ and FFmpeg/ffprobe; burned shorts captions need a libass-enabled build. No Python packages, model download or GPU is required for supplied word timings/artwork. Install each **whole folder**, including scripts/references/agent metadata, in the [skill location for your agent](#documented-skill-locations). Inspect an existing installation before replacing it.
+
+Example installation request:
+
+```text
+Install skills/podcast-packager and skills/short-form-clips from
+https://github.com/rovidxmedia/AI-Media-Skills into this agent's skill location.
+Preserve existing installations; read each SKILL.md and run its helper doctor.
+Keep media, jobs and caches outside the repository. Do not process footage yet.
+```
+
+For packaging, ask:
+
+```text
+Use podcast-packager on my finished episode. Read the final transcript,
+recommend three truthful title/image concepts, and create the chosen title,
+audio/video descriptions, tags, square and wide artwork, MP3 and MP4.
+Use my project's branding and let me review the complete package before posting.
+```
+
+It exports square 3000x3000 and wide 3840x2160 opaque JPEGs, an MP3 with attached square cover, MP4, copy/metadata, optional chapter text and a review page. Audio-only episodes get a static-art MP4. Only the chosen complete audio mix is exported; other source tracks remain untouched. Image design/generation belongs to an available agent tool or user-selected engine; the local helper formats finished artwork. Remote image tools are not made local by this workflow. It does not invent guests/claims/links or automatically upload assets. See [commands and metadata](skills/podcast-packager/references/workflow.md).
+
+For short-form clips, ask:
+
+```text
+Use short-form-clips on my finished episode. Find the strongest standalone
+moments, explain their opening hook and payoff, and recommend three clips.
+Show me the candidate bounds and portrait framing before generating drafts.
+Create corrected captions, clean alternatives, cover frames and publishing copy.
+```
+
+The agent selects moments semantically; the helper exports reviewed contiguous passages. Default 1080x1920 clips use static crop or whole-frame fit, nominal source rate, burned captions plus SRT and clean MP4. There is no automatic face tracking. Use matching word JSON or the optional sibling Editor's local ASR workflow, then review the actual speech. Pre-edit transcript times cannot be reused against changed footage. Complete short drafts are previewed and accepted in place without another lossy render. See [interfaces and recovery](skills/short-form-clips/references/workflow.md).
+
+```sh
+python skills/podcast-packager/scripts/packager.py doctor
+python skills/short-form-clips/scripts/shorts.py doctor
+python -m unittest discover -s tests -p "test_publishing.py" -v
+```
+
+The publishing CPU matrix runs generated fixtures on Windows, macOS and Linux. Actual successful runs establish execution on their tested builds; synthetic tones/patterns do not establish good hooks, image aesthetics, subtitle accuracy or human lip sync. These skills create files; publishing and scheduling require a separate user request.
+
 
 ## License and credits
 

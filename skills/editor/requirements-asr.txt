@@ -1,0 +1,4 @@
+# Optional isolated local transcription. Core editing uses only the standard library.
+faster-whisper==1.2.1
+# Newer PyAV rejects metadata_errors, which Faster-Whisper 1.2.1 passes to av.open.
+av==16.0.1

@@ -30,4 +30,6 @@ The repository's MIT license covers the new orchestration scripts and guidance. 
 
 ## Separately installed software
 
+Editor optionally installs [Faster-Whisper 1.2.1](https://github.com/SYSTRAN/faster-whisper) (MIT) into a user-owned isolated environment. CTranslate2, PyAV and other resolved dependencies retain their own notices. [Whisper model weights](https://github.com/openai/whisper) and separately hosted converted models retain their model/provider terms; no weights, third-party source code or transcript fixtures are bundled. Preserve notices and verify the selected model's terms before redistribution. Core Editor uses separately installed FFmpeg and standard-library Python; subtitle rendering depends on the user's FFmpeg/libass build.
+
 FFmpeg, Python, NumPy, SciPy, SoundFile, click, and their dependencies are installed independently and retain their respective upstream licenses. FFmpeg is not bundled; its build configuration affects its available filters and licensing. Refer to the [FFmpeg legal information](https://ffmpeg.org/legal.html) for its own distribution terms.

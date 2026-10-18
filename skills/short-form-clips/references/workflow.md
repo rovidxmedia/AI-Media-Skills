@@ -2,6 +2,8 @@
 
 Use Python 3.10+ with the installed helper's absolute path; examples abbreviate it. FFmpeg/ffprobe must be on PATH. Burned captions need a libass-enabled subtitles filter. Explain any selected tool download/license before setup. The helper has no network or pip operations.
 
+For Homebrew on macOS, use `brew install ffmpeg-full` and prepend `$(brew --prefix ffmpeg-full)/bin` to PATH for this session. The regular formula may lack libass; see [compatibility](compatibility.md). Do not replace a working system installation just to rename it.
+
 ```sh
 python scripts/shorts.py doctor
 python scripts/shorts.py analyze --input "finished episode.mp4" --job "NEW_JOB" --audio-track 0

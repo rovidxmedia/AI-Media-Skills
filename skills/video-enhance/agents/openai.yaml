@@ -1,4 +1,4 @@
 interface:
   display_name: "Video Enhance"
   short_description: "Local video repair with CPU and optional AI engines"
-  default_prompt: "Use $video-enhance to analyze my footage, explain the recommended treatment and get my confirmation before processing, then show a comparison preview for approval before rendering the full video."
+  default_prompt: "Use $video-enhance to analyze my footage, recommend repairs and offer higher resolution/frame-rate options, confirm my choices, then show a comparison preview for approval before rendering the full video."

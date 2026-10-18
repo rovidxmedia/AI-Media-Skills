@@ -345,6 +345,8 @@ First analyze my footage and hardware. Explain the issues you find, the repairs
 you recommend for the best attainable quality, their tradeoffs and any limits.
 Confirm that treatment plan with me, including enhancement style, resolution,
 frame rate and processing-time preference, before enhancement setup or processing.
+Offer output upgrades as well as keeping the source: for example, 720p to
+1080p or 4K, and 24 fps to 30 or 60 fps. Let me choose them independently.
 Then show a short original/treated comparison and measured render estimate.
 Let me review it before processing the whole recording. Preserve my source and
 all audio tracks, and put generated files in a new output folder.
@@ -370,6 +372,8 @@ Choose an excerpt inside your recording. After reviewing the actual comparison, 
 Inspect `setup --engine realesrgan` or `setup --engine rife` before adding `--install`. Real-ESRGAN restores live-action detail; RIFE generates intermediate frames. SeedVR2 is a heavier optional reconstruction adapter with an isolated PyTorch environment. See [engine setup](skills/video-enhance/references/engines.md) for package sizes, hardware candidates and model requirements.
 
 `--height 1080 --fps 60 --interpolation rife` requests 1080-high output and neural motion interpolation when that raises the effective frame rate. For fractional footage, choose a rational such as `60000/1001` when appropriate. CPU `--interpolation motion` uses conventional motion estimation. Detected variable-rate footage requires an explicit output rate; HDR requires an explicit color-handling choice.
+
+`analyze` reports source-aware resolution and frame-rate choices in `output_options`, including keep-source choices. A landscape 720p/24 recording offers 1080p or 4K UHD and 30 or 60 fps; a 1080p/30 recording offers 4K and 60 fps. These are independent selections, subject to the chosen engine's sample test and measured cost. For a confirmed landscape 4K/60 preview, use `--height 2160 --fps 60 --interpolation rife`. Portrait and other aspect ratios retain their geometry; see [output upgrade choices](skills/video-enhance/references/repairs.md#output-upgrade-choices).
 
 Jobs contain inspection frames, a muted side-by-side comparison (original left, treated right), an enhanced excerpt with all audio, a review page, settings, benchmark estimates and checkpoints. MKV is the default to preserve audio codecs; MP4 is available for compatible tracks. Review face consistency, texture, text, motion, cuts, crop/borders and lip sync before accepting.
 

@@ -126,6 +126,44 @@ def scene_cuts(source, info, *, start=0, duration=None, log=None):
                    if 0.05 < float(x) < duration - 0.05})
 
 
+def output_options(info):
+    """Offer higher delivery sizes/rates without selecting or benchmarking them."""
+    width, height = info["width"], info["height"]
+    resolutions = [{"label": f"Keep source ({width}x{height})", "width": width,
+                    "height": height, "height_arg": "source", "upscale": False}]
+    portrait = height > width
+    for name, box_width, box_height in (("720p", 1280, 720), ("1080p", 1920, 1080),
+                                         ("4K UHD", 3840, 2160)):
+        if portrait:
+            box_width, box_height = box_height, box_width
+        factor = min(Fraction(box_width, width), Fraction(box_height, height))
+        if factor <= 1:
+            continue
+        target_height = int(height * factor) // 2 * 2
+        target_width = max(2, round(target_height * width / height / 2) * 2)
+        if target_height < 64 or target_width <= width or target_height <= height:
+            continue
+        # Match --height's aspect-preserving dimensions. Non-16:9 content fits the
+        # delivery box rather than being stretched or cropped to a nominal size.
+        label = name if (target_width, target_height) == (box_width, box_height) else name + " bounds"
+        resolutions.append({"label": f"{label} ({target_width}x{target_height})",
+                            "width": target_width, "height": target_height,
+                            "height_arg": str(target_height), "upscale": True})
+    native = Fraction(info["fps"])
+    fractional = native in (Fraction(24000, 1001), Fraction(30000, 1001), Fraction(60000, 1001))
+    rates = (Fraction(30000, 1001), Fraction(60000, 1001)) if fractional else (Fraction(30), Fraction(60))
+    frame_rates = [{"label": f"Keep source rate ({float(native):g} fps)", "fps": str(native),
+                    "requires_interpolation": False}]
+    frame_rates.extend({"label": f"{float(rate):g} fps", "fps": str(rate),
+                        "requires_interpolation": True} for rate in rates if rate > native)
+    return {"resolution": resolutions, "frame_rate": frame_rates,
+            "note": "Choose resolution and frame rate independently; no upgrade is selected automatically. "
+                    "Dimensions preserve aspect ratio and orientation. Higher rates need interpolation. "
+                    "For VFR, the displayed source rate is a nominal CFR target, not preserved variable timing. "
+                    "Reassess motion rate after deinterlacing. Availability and cost require a selected-engine preview; "
+                    "exact 30/60 fps and custom dimensions/rates remain available through --height/--fps."}
+
+
 def analyze(source, folder, cache):
     source = absolute(source)
     if not source.is_file():
@@ -169,13 +207,16 @@ def analyze(source, folder, cache):
     info["vfr_detected"] = any(sample["variable_frame_intervals"] for sample in samples)
     if info["vfr_detected"]:
         suggestions.append("Variable frame intervals detected: choose an explicit CFR output rate; elapsed time will be retained.")
+    options = output_options(info)
     job = {"schema_version": VERSION, "source": fingerprint(source), "media": info,
            "cache": str(absolute(cache)), "analysis": {"samples": samples, "suggestions": suggestions},
            "settings": None, "preview": None, "approval": None}
+    job["analysis"]["output_options"] = options
     write_json(folder / "doctor.json", inventory)
     write_json(folder / "job.json", job)
     return {"job": str(folder / "job.json"), "media": {k: v for k, v in info.items() if k not in ("streams", "format", "audio")},
             "audio_tracks": len(info["audio"]), "samples": samples, "suggestions": suggestions,
+            "output_options": options,
             "preferences_needed": ["repairs", "natural/strong look", "resolution", "frame rate", "time/quality budget"]}
 
 

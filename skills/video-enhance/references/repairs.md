@@ -15,6 +15,27 @@ The helper offers selected treatments, rather than applying every filter. Use or
 | Higher resolution | `--height` | Retain aspect ratio, normalize non-square pixels, handle display rotation. NCNN reconstructs at x4 internally then resizes. Increased dimensions do not prove increased detail. |
 | Smoother motion | `--fps`, `--interpolation` | RIFE is neural; `motion` uses conventional motion estimation. Avoid excessive frame-rate increases; review hands, mouth, occlusions and cuts. |
 
+## Output upgrade choices
+
+Offer size and motion upgrades during treatment confirmation, even when cleanup alone is recommended. Include a keep-source option and honor any output choices already supplied. The helper reports candidates in `analyze`'s `output_options` and saves them under `analysis` in the job; they are suggestions, not selected settings or evidence that an engine has passed a benchmark.
+
+| Source | Offer |
+| --- | --- |
+| 720p (1280×720) | Keep 720p, 1080p (1920×1080), or 4K UHD (3840×2160) |
+| 1080p or 1440p | Keep source or upscale within 4K UHD bounds |
+| Below 720p | Keep source, 720p, 1080p, or 4K, with realistic detail-recovery limits |
+| 4K or larger | Keep source; discuss custom higher dimensions only if requested and supported |
+| 24 fps | Keep 24, interpolate to 30, or interpolate to 60 fps |
+| 25 or 30 fps | Keep source or offer higher 30/60 targets, excluding rates already reached |
+| 50 fps | Keep 50 or interpolate to 60 fps |
+| 60 fps or higher | Keep source; do not present a lower rate as an upgrade |
+
+Preserve aspect ratio and orientation. For portrait 720×1280, the corresponding choices are 1080×1920 and 2160×3840; pass `--height 1920` or `--height 3840`, not the landscape heights. Square and ultrawide recordings fit inside the selected delivery bounds without stretching/cropping; display their actual dimensions rather than claiming an exact 16:9 size. UHD here means 3840×2160, not DCI 4096×2160.
+
+For common fractional rates, offer matching-family targets (24000/1001 → 30000/1001 or 60000/1001; 30000/1001 → 60000/1001), labeling them 23.976/29.97/59.94 as appropriate. Exact 30 or 60 remains a user-selectable alternative; record the exact rational rate. For interlaced material, account for bwdif's effective field rate before offering interpolation. For VFR, keeping the nominal rate still means the helper's explicit CFR normalization; explain it before confirmation.
+
+Explain spatial upscaling separately from motion interpolation: CPU scaling enlarges the image conventionally, while optional AI restoration reconstructs detail and may invent it. Higher frame rates use RIFE AI or FFmpeg conventional interpolation; repeated frames do not add smoothness. Both can produce artifacts and increase processing/storage needs. Preview the selected size and rate, measure the actual cost, and compare fine detail at full resolution because the small side-by-side display can hide upscaling artifacts. Do not promise that a larger output is automatically better.
+
 ## Order and timing
 
 Detect shot boundaries first. Deinterlace and explicitly handle HDR, normalize sample aspect ratio, stabilize, deflicker/deblock/denoise/deband, adjust selected exposure/color, restore detail, resize, and interpolate. Sharpen at delivery size. Each shot is processed independently so temporal filters do not bridge a detected cut. Cut detection is heuristic; inspect missed fades/cuts and adjust the material or process shorter ranges if necessary.

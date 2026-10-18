@@ -19,6 +19,45 @@ import engines
 import video_enhance as video
 
 
+class OutputOptionsTests(unittest.TestCase):
+    def test_720p_24fps_offers_independent_higher_outputs_without_selecting_them(self):
+        media = {"width": 1280, "height": 720, "fps": "24"}
+        result = video.output_options(media)
+        self.assertEqual([(r["width"], r["height"], r["height_arg"]) for r in result["resolution"]],
+                         [(1280, 720, "source"), (1920, 1080, "1080"), (3840, 2160, "2160")])
+        self.assertEqual([(r["fps"], r["requires_interpolation"]) for r in result["frame_rate"]],
+                         [("24", False), ("30", True), ("60", True)])
+        self.assertFalse(result["resolution"][0]["upscale"])
+        self.assertEqual(media, {"width": 1280, "height": 720, "fps": "24"})
+
+    def test_existing_size_and_rate_are_not_offered_as_upgrades(self):
+        result = video.output_options({"width": 1920, "height": 1080, "fps": "30"})
+        self.assertEqual([r["height_arg"] for r in result["resolution"]], ["source", "2160"])
+        self.assertEqual([r["fps"] for r in result["frame_rate"]], ["30", "60"])
+        result = video.output_options({"width": 3840, "height": 2160, "fps": "120"})
+        self.assertEqual(len(result["resolution"]), 1)
+        self.assertEqual(len(result["frame_rate"]), 1)
+
+    def test_portrait_and_wide_options_fit_bounds_and_match_height_argument(self):
+        for width, height, expected in ((720, 1280, [(1080, 1920), (2160, 3840)]),
+                                        (2560, 1080, [(3840, 1620)]),
+                                        (1000, 1000, [(1080, 1080), (2160, 2160)])):
+            with self.subTest(width=width, height=height):
+                result = video.output_options({"width": width, "height": height, "fps": "60"})
+                self.assertEqual([(r["width"], r["height"]) for r in result["resolution"][1:]], expected)
+                for option in result["resolution"][1:]:
+                    requested = int(option["height_arg"])
+                    self.assertEqual(option["height"], requested)
+                    self.assertEqual(option["width"], max(2, round(requested * width / height / 2) * 2))
+
+    def test_fractional_family_is_retained(self):
+        result = video.output_options({"width": 1280, "height": 720, "fps": "24000/1001"})
+        self.assertEqual([r["fps"] for r in result["frame_rate"]],
+                         ["24000/1001", "30000/1001", "60000/1001"])
+        result = video.output_options({"width": 1280, "height": 720, "fps": "60000/1001"})
+        self.assertEqual(len(result["frame_rate"]), 1)
+
+
 class EngineUnitTests(unittest.TestCase):
     def test_doctor_recognizes_ffmpeg_nine_two_column_filter_flags(self):
         from types import SimpleNamespace
@@ -176,6 +215,26 @@ class VideoIntegrationTests(unittest.TestCase):
         output = video.probe(result["samples"][0]["output"])
         self.assertEqual((output["width"], output["height"]), (76, 128))
         self.assertAlmostEqual(float(video.Fraction(output["fps"])), 60000 / 1001, places=2)
+
+    def test_analyzed_choices_and_24_to_30_upscaled_preview(self):
+        source = self.folder / "24fps.mkv"
+        video.ffmpeg(["-f", "lavfi", "-i", "testsrc2=size=160x90:rate=24:duration=1.5",
+                      "-an", "-c:v", "libx264", source])
+        target = self.folder / "24fps-job"
+        result = video.analyze(source, target, self.base / "cache")
+        _, job = video.load_job(target)
+        self.assertEqual(result["output_options"], job["analysis"]["output_options"])
+        self.assertEqual([r["fps"] for r in result["output_options"]["frame_rate"]], ["24", "30", "60"])
+        self.assertIsNone(job["settings"])
+        self.assertIsNone(job["preview"])
+        args = self.args("--height", "180", "--fps", "30", "--interpolation", "motion",
+                         "--starts", "0", "--seconds", "1")
+        args.job = target
+        preview = video.preview(args)
+        output = video.probe(preview["samples"][0]["output"])
+        self.assertEqual((output["width"], output["height"], output["fps"]), (320, 180, "30"))
+        self.assertEqual(preview["samples"][0]["verification"]["frames"], 30)
+        video.check_source(job)
 
     def test_interlace_and_flicker_stabilization(self):
         filters = set(video.doctor(self.base / "cache")["filters"])

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Video Motion Graphics"
+  short_description: "Purposeful HyperFrames overlays for recorded video"
+  default_prompt: "Use $video-motion-graphics to add well-timed lower thirds and screenshot callouts to this finished video."

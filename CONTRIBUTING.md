@@ -57,6 +57,8 @@ Open an issue for a reproducible problem or a pull request with the change, inte
 
 Original contributions use this repository's MIT license. Identify separately licensed material explicitly.
 
+For Video Motion Graphics, run `python -m unittest discover -s tests -p "test_motion_graphics.py" -v` with Python and FFmpeg/ffprobe. Generated ProRes-alpha fixtures exercise cue/source/asset binding, fractional timing, protected regions, alpha/geometry/frame guards, all-track audio and lossless compositing. They do not run HyperFrames. Separately exercise actual pinned HyperFrames compositions, checks, seeked snapshots and alpha exports; inspect the composites in motion on representative footage. Record source links, versions, hardware/platform limits and actual human review separately. Keep upstream registry/runtime/font downloads and private screenshots out of the contribution.
+
 ## Publishing and short-form checks
 
 Run `python -m unittest discover -s tests -p "test_publishing.py" -v` with Python and FFmpeg/ffprobe (libx264, libmp3lame, AAC and libass/subtitles). These tests generate their own source fixtures and need no model/network. They exercise packaging, audio-only video, multitrack selection, captions, portrait layouts, fractional rates, invalid imports, storage failures, interrupted resume and hash receipts. Run the full existing suite before submitting. Keep semantic-selection judgments, speech/visual review and actual ASR/image-engine validation separate from these technical checks. Do not commit private episode text, media, job reports or output assets.

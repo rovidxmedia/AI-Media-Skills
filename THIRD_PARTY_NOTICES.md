@@ -2,6 +2,10 @@
 
 The repository's MIT license applies to original project code and documentation. It does not replace the notices or terms attached to the following materials.
 
+## Optional HyperFrames motion graphics
+
+Video Motion Graphics integrates the separately installed [HyperFrames](https://github.com/heygen-com/hyperframes) CLI, skills and registry; their applicable upstream licenses remain authoritative. No upstream renderer, registry template, JavaScript runtime, font or screenshot is bundled with this skill. Projects that adopt components or dependencies must retain their source/version and applicable notices, including any separately licensed animation runtime/fonts. The Python cue/compositing helper is original repository code; FFmpeg remains separately installed under the notices below. Research sources are linked in the skill's reference rather than copied.
+
 ## RNNoise model data
 
 - File: `skills/podcast-audio-repair/assets/cb.rnnn`

@@ -1,0 +1,25 @@
+# Compatibility and verification
+
+The cue/compositing helper uses Python 3.10+ standard library and FFmpeg/ffprobe with FFV1, ProRes decoding and overlay/alphaextract filters. No pip packages, models, Pinokio or cloud service are required. It expects a prepared progressive Rec.709 SDR, square-pixel, unrotated video. HDR, known other primaries and other preparation require a separate explicit treatment, rather than an accidental browser/SDR conversion. Untagged sources require a source/color diagnosis. High-bit-depth SDR is retained in a 16-bit lossless master.
+
+HyperFrames is a separately installed dependency under its own license. Check the actual CLI version, Node/browser, fonts, installed workflow and registry dependencies. Installed skills and online documentation can describe different versions. Commands in the workflow are examples; the installed compatible contract and `--help` determine supported flags. Preserve a compatible project pin rather than upgrading all global skills. Renderer/package/browser/font installation may need downloads; explain those before setup.
+
+Run `python -m unittest discover -s tests -p "test_motion_graphics.py" -v` and the Producer tests from the repository root. Generated fixtures cover source/asset/plan binding, fractional frame grids, highlight/image bounds, protected regions, overlapping cues, missing/opaque/wrong-size overlays, multiple labeled audio tracks, complete compositing/decoding, source preservation and output refusal. Simulated alpha fixtures test the compositor, not HyperFrames itself. HyperFrames runtime tests must be exercised separately and documented as such.
+
+Windows is the local renderer test target; CPU helper CI is configured for Windows, macOS and Linux. A configured job is not evidence of a successful native render. No GPU video-encoding path, macOS/Linux Chromium run, HDR compositing or automated face tracking is claimed. Technical checks do not establish good editorial choices, screenshot rights/accuracy, reading comfort or accessible final media.
+
+## Local development evidence — October 18, 2026
+
+Windows, Python 3.13.3, Node.js 22.15.0, FFmpeg 7.0 and the existing HyperFrames 0.8.61 pin were exercised. The local headless browser used HeadlessChrome 152 with NVIDIA RTX A4500/ANGLE; this is browser graphics acceleration, not a claim of GPU ProRes encoding. Two real HyperFrames compositions passed lint/runtime/layout/contrast checks without findings after adapting the official `lt-clean-bar` block and `inline-highlight` component to the pinned sub-composition contract and local dependency assets.
+
+The 4.8-second lower third exported 144 alpha frames; the six-second screenshot/highlight exported 180. Both 1920×1080/30 overlays were composited on two different generated eight-second background clips. Each final file fully decoded to 240 frames, retained both labeled audio tracks and preserved its source hash. Entrance/hold/exit snapshots and composite stills were inspected. These synthetic demos alone do not establish episode relevance or human motion acceptance. No private recording or user publishing asset was used in these demos, and no demo media or upstream template/runtime/font is bundled.
+
+The installed `doctor` reported a newer version and missing optional speech/music providers; selected Node/Chrome/FFmpeg capabilities were available and actual local graphics rendering succeeded. The sandboxed browser attempt could not complete; the same checks/rendering succeeded outside that execution sandbox. A host restriction is not a reason to substitute a fake rasterizer or claim a render passed. Existing pins were preserved; macOS/Linux native HyperFrames rendering remains untested.
+
+## Approved real-footage excerpt test — October 18, 2026
+
+The same Windows toolchain rendered three 3840×2160/30 treatments on excerpts from an approved finished podcast: a host lower third, a screenshot with a speech-timed task outline, and a key phrase revealed in spoken order. Existing screenshot/key-phrase panels were replaced only in the comparison excerpts, retaining the visible speaker. All three HyperFrames projects passed lint/runtime/layout/contrast checks with transition samples; entrance/hold/exit and backward-seek snapshots were inspected.
+
+The 11.0-, 10.4- and 12.0-second composites fully decoded to 330, 312 and 360 frames. Each retained three labeled audio tracks; decoded PCM stream hashes matched its pre-graphics excerpt exactly. Source excerpt and parent-master hashes were unchanged, and the raw recording's size/modification timestamp was unchanged. Six 1920×1080/30 before/after MP4 review copies fully decoded with the selected complete mix. The user reviewed and accepted the treatments. Private media, brand assets, screenshots, source hashes, project paths and review artifacts remain outside this repository.
+
+This evidence covers the three reviewed landscape excerpts, not a full-episode render, portrait reframing, automated face tracking, HDR, or native macOS/Linux HyperFrames rendering. Those claims require their own verification.

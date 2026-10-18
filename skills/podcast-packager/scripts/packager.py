@@ -250,7 +250,8 @@ def main():
         else:
             args.resume=args.command=='resume'
             result=package(args)
-        print(json.dumps(result,ensure_ascii=False,indent=2))
+        # Escaped JSON stays readable by machines on legacy Windows consoles.
+        print(json.dumps(result,ensure_ascii=True,indent=2))
     except (ValueError,OSError,KeyError) as exc: raise SystemExit('Packager: '+str(exc))
 
 

@@ -353,7 +353,8 @@ def main():
         elif args.command=='render': result=render(args)
         else:
             args.resume=args.command=='resume'; result=preview(args)
-        print(json.dumps(result,indent=2,ensure_ascii=False))
+        # Reports remain UTF-8; stdout also works on legacy Windows consoles.
+        print(json.dumps(result,indent=2,ensure_ascii=True))
     except (ValueError,OSError,KeyError,TypeError,ZeroDivisionError) as exc: raise SystemExit('Shorts: '+str(exc))
 
 

@@ -4,9 +4,11 @@ import array
 import copy
 import importlib.util
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -122,6 +124,15 @@ class PackagerTests(Fixture):
         with self.assertRaisesRegex(ValueError,'aspect ratio'):
             pk.artwork(self.square,self.folder('bad.jpg'),3840,2160,None)
         with patch.object(pk.shutil,'which',return_value=None): self.assertFalse(pk.doctor()['ready'])
+
+    def test_cli_unicode_paths_on_legacy_console(self):
+        env={**os.environ,'PYTHONIOENCODING':'ascii'}
+        for name,script in (('package',pk.__file__),('shorts',sc.__file__)):
+            job=self.folder(name+'-\u4e16\u754c')
+            result=subprocess.run([sys.executable,script,'analyze','--input',str(self.source),'--job',str(job)],
+                                  env=env,capture_output=True,text=True,encoding='ascii')
+            self.assertEqual(result.returncode,0,result.stderr)
+            self.assertEqual(json.loads(result.stdout)['job'],str(job.resolve()))
 
 
 class ShortsTests(Fixture):

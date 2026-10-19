@@ -1,4 +1,6 @@
-# Pipeline, handoffs and recovery
+# Recorded-episode pipeline, handoffs and recovery
+
+This helper graph remains specific to recorded episodes. Read [routing.md](routing.md) for other media and existing show workflows, and [coordination.md](coordination.md) for shared handoff/review rules. Do not force generated video through episode-only transcript/package stages.
 
 Read each selected specialist's current `SKILL.md` and relevant interface before execution. Find it in the host's installed skill roots or the repository's sibling folders; do not hardcode a user directory. Install missing skills deliberately through the host's normal installer. Producer itself uses only the Python standard library. The host agent coordinates calls; the ledger is not a headless media-rendering or upload service.
 
@@ -76,6 +78,6 @@ Use child `resume` commands only under their unchanged accepted plan and source.
 
 ## Validation limits
 
-Producer tests use generated local files and simulated publisher readbacks to exercise setup, portability, defaults, lineage, final transcript binding, stale artifacts, review authorization, schedule validation, uncertain retries, destination mismatch and receipt persistence. They do not establish ASR accuracy, good editing, good art, connector authentication or successful real uploads. Specialist suites cover their actual media engines. Review real treatment samples and complete finished deliverables before claiming quality acceptance.
+Producer tests use generated local files and simulated publisher readbacks to exercise setup, portability, defaults, lineage, final transcript binding, stale artifacts, review authorization, schedule validation, uncertain retries, destination mismatch and receipt persistence. They do not establish ASR accuracy, good editing, good art, connector authentication or successful real uploads. The repository includes the tests; a copied skill folder does not. Run tests from the downloaded repository and distinguish configured CI from completed results. Review real treatment samples and complete finished deliverables before claiming quality acceptance.
 
 A complete private episode was exercised on Windows in October 2026: first-run setup, approved Natural editing, audio repair, conventional 1080p-to-4K/30 finishing, final-word alignment, MP3/MP4, separate artwork/copy and four captioned portrait shorts. Full media decoding and source preservation passed, and the user reviewed the deliverables. This establishes that tested local workflow, not universal hardware support or live publishing. Private profiles, recordings, transcripts, artwork, account details and reports are excluded from this repository.

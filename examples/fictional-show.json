@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "show": {
+    "name": "Lantern Workshop",
+    "description": "A fictional show about practical ideas for independent makers.",
+    "hosts": [
+      "Morgan Vale"
+    ],
+    "format": "both",
+    "language": "en",
+    "audience": "Independent makers and small studio owners"
+  },
+  "brand": {
+    "assets": [],
+    "voice": "Clear, curious and practical",
+    "links": []
+  },
+  "skills": {
+    "editor": {
+      "style": "natural",
+      "captions": "off"
+    },
+    "short-form-clips": {
+      "count": 0
+    },
+    "video-motion-graphics": {
+      "enabled": false
+    },
+    "that-radio-voice": {
+      "enabled": false
+    }
+  },
+  "distribution": {
+    "mode": "manual",
+    "timezone": null,
+    "cadence": null,
+    "destinations": []
+  }
+}

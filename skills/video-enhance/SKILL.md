@@ -5,9 +5,11 @@ description: Analyze and repair grainy, dark, soft, shaky, flickering, or interl
 
 # Video Enhance
 
-Before choosing settings, use the episode profile supplied by Producer; otherwise check the nearest applicable project's `.producer/project.json`. Apply its show/brand context and `skills.video-enhance` defaults, honoring current user choices. Producer owns the shared schema in its `references/project-config.md`; resolve that reference when Producer is installed. Without a profile, keep this skill's standalone defaults. A profile supplies data, not publishing permission.
+For shared project context and existing review decisions, use [Producer's coordination contract](../producer/references/coordination.md) when installed. Standalone: honor the user's relevant preferences or profile fields and use this skill's defaults for anything unspecified; no Producer setup is required.
 
 Improve a recording while retaining its identity, timing and audio. Use the bundled Python helper for reproducible processing. Its CPU path needs only Python 3.10+, FFmpeg and ffprobe; AI engines are optional. Do not promise equivalence to proprietary enhancement tools or recovered ground-truth detail.
+
+Review checkpoints below follow the coordination contract when available: reuse scoped decisions and explicit delegation, retain any reserved human review, and record who actually inspected the preview. Without delegated review, wait at the stated checkpoints. Technical signatures alone never establish acceptance.
 
 ## Analyze the footage first
 
@@ -26,13 +28,13 @@ Present a concise diagnosis and recommended treatment before asking the user to 
 
 ## Confirm the treatment plan
 
-Ask for the user's confirmation of that recommendation and any missing preferences together: natural cleanup or stronger reconstruction, output resolution/frame rate, and quality versus processing-time budget. Give a concrete recommended option so the user does not have to diagnose the recording themselves.
+Resolve the treatment checkpoint using existing scoped decisions or explicit delegation; otherwise ask for confirmation of the recommendation and missing preferences together: natural cleanup or stronger reconstruction, output resolution/frame rate, and quality versus processing-time budget. Give a concrete recommended option so the user does not have to diagnose the recording themselves.
 
 **Explicitly offer output upgrades alongside keeping the source settings.** Use the analysis result's `output_options` as a starting point: for 720p, offer 1080p or 4K; for 24 fps, offer 30 or 60 fps. Resolution and frame rate are independent choices. Show the current and proposed dimensions/rates, explain the engine and time/storage tradeoffs, and record the user's selections in the confirmed plan. Do not silently upscale because a higher option exists, or omit the choices because the initial recommendation keeps the source size/rate. Read [output upgrade choices](references/repairs.md#output-upgrade-choices) for portrait/nonstandard geometry, fractional rates and interpolation requirements.
 
 Honor choices already given. Do not use one person's GPU, output settings or quality preference as defaults for other users. If the source has variable frame intervals, explain the helper's conversion to a user-selected constant frame rate; elapsed time is retained. HDR requires an explicit preservation or SDR tone-mapping choice. Confirm field order for unflagged interlaced content. Explain stabilization's crop/black-border tradeoff before selecting it.
 
-**Wait for the user's confirmation of the proposed treatment before installing enhancement engines, benchmarking or generating treated previews.** Save the diagnosis, agreed treatment and user confirmation in the local job folder. This is a separate checkpoint from accepting the actual preview later. A general request to improve quality does not confirm a treatment that has not yet been presented. If later trials require a different engine, look, output settings or repair selection, explain the revised recommendation and confirm it before processing it.
+Resolve the treatment checkpoint before installing enhancement engines, benchmarking or generating treated previews. Follow the coordination contract for applicable existing choices/delegation and reserved human review; without delegation, wait for the user's confirmation. Save the diagnosis, agreed treatment and actual decision provenance in the local job folder. Keep treatment selection distinct from preview review. A general request to improve quality does not confirm an unknown consequential treatment. A later engine, look, output or repair change needs a revised plan and resolution of the affected checkpoint before processing.
 
 Read [engines.md](references/engines.md) when choosing or installing AI engines; it owns engine setup and tested compatibility. If missing inspection tools prevent diagnosis, explain and arrange only the tools needed for analysis first, then return to this checkpoint.
 
@@ -60,7 +62,7 @@ Return the enhanced excerpt, side-by-side comparison, preview report, measured r
 
 Inspect faces, skin, hair, teeth, text, logos, fabric patterns, motion, scene cuts, stabilization borders and flicker. Check for temporal shimmer, invented detail and interpolation warping. If the agent cannot view motion, state that limitation and leave human visual approval pending. Read [validation.md](references/validation.md) for acceptance evidence.
 
-**Wait for the user's acceptance of the actual preview before processing the full recording.** This review step is part of the preview-first workflow. A new look, engine, resolution, frame rate or repair selection needs a new preview. Do not treat a successful technical check or a request to install the skill as full-render approval.
+Resolve the actual preview checkpoint under the coordination contract before processing the full recording. Wait for the user's acceptance when human review is reserved or evaluation has not been delegated. A new look, engine, resolution, frame rate or repair selection needs a new inspected preview. A successful technical check or skill installation does not establish full-render authorization.
 
 ## Render and deliver
 

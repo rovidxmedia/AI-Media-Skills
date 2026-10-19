@@ -5,7 +5,7 @@ description: Create a full publishing package from a finished podcast episode wi
 
 # Podcast Packager
 
-Before choosing settings, use the episode profile supplied by Producer; otherwise check the nearest applicable project's `.producer/project.json`. Apply its show/brand context and `skills.podcast-packager` defaults, honoring current user choices. Producer owns the shared schema in its `references/project-config.md`; resolve that reference when Producer is installed. Without a profile, keep this skill's standalone defaults. A profile supplies data, not publishing permission.
+For shared project context and existing review decisions, use [Producer's coordination contract](../producer/references/coordination.md) when installed. Standalone: honor the user's relevant preferences or profile fields and use this skill's defaults for anything unspecified; no Producer setup is required.
 
 Deliver MP3, MP4, two separately composed images and ready-to-paste copy. Read [workflow.md](references/workflow.md) for commands and metadata, [artwork.md](references/artwork.md) before image design, and [compatibility.md](references/compatibility.md) for limits. Resolve helpers relative to this skill's installation.
 

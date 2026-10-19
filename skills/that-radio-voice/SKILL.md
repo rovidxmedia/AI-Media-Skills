@@ -5,7 +5,7 @@ description: Give recorded speech a big broadcast radio sound using tone shaping
 
 # That Radio Voice
 
-Before choosing settings, use the episode profile supplied by Producer; otherwise check the nearest applicable project's `.producer/project.json`. Apply its show/brand context and `skills.that-radio-voice` defaults, honoring current user choices. Producer owns the shared schema in its `references/project-config.md`; resolve that reference when Producer is installed. Without a profile, keep this skill's standalone defaults. A profile supplies data, not publishing permission.
+For shared project context and existing review decisions, use [Producer's coordination contract](../producer/references/coordination.md) when installed. Standalone: honor the user's relevant preferences or profile fields and use this skill's defaults for anything unspecified; no Producer setup is required.
 
 Make clean recorded speech fuller, denser, and more present while keeping the speaker's identity, words, pitch, timing, and channel layout. The result should sound intentionally produced. Judge tone at matched loudness as well as at delivery volume.
 
@@ -36,4 +36,4 @@ Return the radio WAV, MP3, actual-volume and matched comparisons, and settings r
 
 Verify source hashes, exact frame count and channels, finite unclipped samples, achieved loudness within 0.3 LU, true peaks, and codec decoding. Keep float intermediates so boosts do not clip before mastering. Preserve pauses and editorial content; pitch shifting, time stretching, and synthesized speech are outside this skill.
 
-Listen for body, presence, density, gate chatter, lost word endings, harsh sibilance, distortion, and naturalness. If audio perception is unavailable, provide the real comparisons and mark listening approval pending; measurements cannot establish that the user likes the effect. Exercise the helper on another passage and generated fixtures before treating it as reusable. Keep private recordings, machine paths, and job measurements with the job, not in this skill.
+Listen for body, presence, density, gate chatter, lost word endings, harsh sibilance, distortion, and naturalness. If audio perception is unavailable, provide the real comparisons and mark listening approval pending; measurements cannot establish that the user likes the effect. For changes to the helper or its processing procedure, verify another passage and suitable fixtures before treating the revision as reusable. Keep private recordings, machine paths, and job measurements with the job, not in this skill.

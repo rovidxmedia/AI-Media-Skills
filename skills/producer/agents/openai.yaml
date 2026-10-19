@@ -1,4 +1,4 @@
 interface:
   display_name: "Producer"
-  short_description: "Manage podcast and YouTube production through delivery"
-  default_prompt: "Use $producer to turn this raw recording into a finished episode, publishing package, shorts and verified distribution."
+  short_description: "Coordinate media productions and specialist skills"
+  default_prompt: "Use $producer to manage this media production, coordinate the needed specialists and deliver the requested verified outputs."

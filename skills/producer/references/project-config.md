@@ -1,6 +1,6 @@
 # First-run setup and shared configuration
 
-Producer owns this configuration. Specialist skills read their relevant fields; their own references remain authoritative for processing parameters and tool setup. A profile supplies preferences, not executable commands or external-action permission. Explicit user choices govern. Prefer a running episode's saved profile over a newly changed project default.
+Producer owns this recorded-episode configuration. For shared context, standalone use and review decisions, read [coordination.md](coordination.md). For other production types, use [routing.md](routing.md) and the selected workflow's existing project files; this schema is not mandatory. Specialist skills read their relevant fields; their own references remain authoritative for processing parameters and tool setup. A profile supplies preferences, not executable commands or external-action permission. Explicit user choices govern. Prefer a running episode's saved profile over a newly changed project default.
 
 ## Onboard once per project
 
@@ -62,7 +62,7 @@ Use `libsyn` instead of `spreaker` when that is the selected host, or explicit d
 
 `show` owns identity/content/audience; `brand` points to maintained assets and voice/link choices; relative asset/output paths resolve from the project root. `skills[skill-name]` owns relevant defaults. Values such as `if-needed`, `content-aware` and `resolution: source` express decisions for the agent to resolve using that specialist's diagnosis/interface; do not pass them blindly as CLI flags. Keep specialist-specific additional options with that skill's object and verify they exist before applying them.
 
-On each specialist invocation: use the Producer job's saved profile if supplied, otherwise the nearest applicable project profile, apply only relevant preferences, and honor current user overrides. If Producer is not installed, a specialist can still read the structured defaults and run independently; no shared runtime import is required. A missing profile preserves the specialist's existing standalone behavior.
+Preference selection and standalone fallback are defined in [coordination.md](coordination.md); this reference defines the profile fields and helper behavior.
 
 `init` snapshots the validated profile into the episode manifest. `--overrides FILE` merges per-episode `skills` objects without changing project defaults. Setup updates affect subsequent episodes. To change a running episode's creative settings, use the specialist's revised plan/preview and record the replacement stage; do not silently rewrite an accepted result to match a later profile. A changed number of selected shorts can be recorded with `selected_count` and the trusted user decision reference.
 

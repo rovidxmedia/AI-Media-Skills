@@ -28,3 +28,14 @@ report.json
 .idea/
 .DS_Store
 Thumbs.db
+
+# Private profiles, generated captions, caches and installation trials
+.producer/
+.media/
+node_modules/
+.cache/
+.ai-media-stage-*/
+*.mov
+*.webm
+*.srt
+*.ass

@@ -6,15 +6,54 @@ A growing collection of practical skills for Codex, Claude Code, and other agent
 
 Created and maintained by [Rovidx](https://www.rovidx.com/).
 
-Start with [Podcast Audio Repair](#start-here-fix-a-short-podcast-sample) for noise and uneven or low levels. Use [That Radio Voice](#that-radio-voice) on clean or repaired speech for a fuller, denser broadcast-style treatment. The two skills can run in sequence.
+Start with **[Producer](#producer)** for a complete podcast or recorded-video production for **your own show**. It gathers your identity, audience, branding and requested outputs once and coordinates the specialists. Individual skills remain directly usable for focused work.
 
-For the picture, [Video Enhance](#video-enhance) inspects the recording and hardware, offers local CPU repair or optional AI enhancement, and shows a comparison before a full render.
+The pack contains eight original skills. HyperFrames and other optional creative/document capabilities are separate dependencies when requested. No private show configuration, account access or universal uploader is included.
 
-[Editor](#editor) tightens recorded speech with proposed filler/pause cuts, reviewed retakes, occasional punch-ins and optional captions. Natural editing is the default. Edit first, then enhance the footage you keep.
+## Start here: install Producer and the pack
 
-[Producer](#producer) coordinates the complete project: first-run show/computer setup, shared specialist preferences, editing and finishing, packaging, shorts, final review and verified distribution through the agent's supported publishing tools.
+Use **Code > Download ZIP** and extract it, or clone:
 
-## Quickstart: let your agent set it up
+```sh
+git clone https://github.com/rovidxmedia/AI-Media-Skills.git
+cd AI-Media-Skills
+```
+
+From the repository, use the standard-library installer:
+
+```sh
+# macOS / Linux: choose a project location.
+python3 scripts/install.py --agent codex --project "$HOME/Podcasts/My Show" --dry-run
+python3 scripts/install.py --agent codex --project "$HOME/Podcasts/My Show"
+```
+
+```powershell
+# Windows PowerShell
+py -3 scripts/install.py --agent codex --project (Join-Path $HOME 'Podcasts/My Show') --dry-run
+py -3 scripts/install.py --agent codex --project (Join-Path $HOME 'Podcasts/My Show')
+```
+
+This copies complete skill folders, assets and licenses and includes Radio Voice's repair dependency when selected. It preserves differing existing installations; repeating an identical install reports unchanged files. It installs no tools/packages/models, changes no accounts and processes no media. For an update, back up and review/remove the selected existing copies deliberately before reinstalling; there is no overwrite flag.
+
+Use `--skills podcast-audio-repair` for one specialist, `--user` instead of `--project` for a personal install, or `--skills-dir PATH` for a custom host directory. Antigravity personal locations vary by surface; use its documented explicit directory instead of `--user`. See the [skill-location table](#documented-skill-locations). No Windows junctions or author-machine paths are required.
+
+Open the show project in your local agent and paste:
+
+```text
+Use Producer from the installed AI Media Skills pack.
+Set up this project for my own show: collect only missing identity, audience,
+branding, output and publishing preferences, and inspect tools.
+Reuse existing project decisions on later episodes. Preserve source recordings.
+Keep this production-only until I choose destinations and authorize release.
+Explain missing dependencies and use isolated environments.
+Do not process a recording until I supply it.
+```
+
+Core helpers need Python 3.10+ and FFmpeg/ffprobe. Use a Python 3.13 environment and the supplied requirements for selected audio repair/voice work. Optional ASR, AI engines, graphics and image tools have separate setup. Verify actual skill discovery and run Producer doctor; restart the agent session if needed.
+
+**Mac trial:** follow [the fictional-show guide](docs/MAC_TRIAL.md) for tools, installation, a [synthetic profile](examples/fictional-show.json) and a production-only prompt. No destinations are configured.
+
+## Focused audio quickstart: let your agent set it up
 
 Open your podcast project or a working folder in **Codex, Claude Code, Cursor Agent, Antigravity, or GitHub Copilot's local agent mode in VS Code**. Use a session that can read/write local files and run terminal commands.
 
@@ -88,7 +127,7 @@ Prefer manual setup? Continue with the [step-by-step instructions](#start-here-f
 
 | Skill | What it does | Included |
 | --- | --- | --- |
-| [Producer](skills/producer/SKILL.md) | Manage a raw recording through episode production and distribution | First-run project configuration and machine inventory, specialist handoffs with requested-only graphics, resumable artifact lineage, final publishing review and per-destination intent/readback ledger |
+| [Producer](skills/producer/SKILL.md) | Coordinate multistage productions and requested specialist work | First-run project configuration and machine inventory, specialist handoffs with requested-only graphics, resumable artifact lineage, final publishing review and per-destination intent/readback ledger |
 | [Podcast Audio Repair](skills/podcast-audio-repair/SKILL.md) | Reduce background noise, even out speech levels, and cautiously test room-echo treatment | Local Python helper, RNNoise model, optional WPE code, comparison audio, and a settings report |
 | [That Radio Voice](skills/that-radio-voice/SKILL.md) | Give clean speech a fuller, denser radio sound with soft gating, EQ, compression, harmonic excitement, and peak-limited mastering | Big and Warm presets, local Python helper, WAV/MP3 exports, two comparison types, and a settings report; requires Podcast Audio Repair alongside it |
 | [Video Enhance](skills/video-enhance/SKILL.md) | Repair grain, poor lighting, softness, shake, flicker and interlacing; optionally upscale or interpolate motion | Portable CPU helper, optional Real-ESRGAN/RIFE/SeedVR2 adapters, hardware checks, preview approval and resumable renders |
@@ -109,7 +148,7 @@ publishing package and shorts. Set up this project first if it is new.
 Let me review the finished package and release plan before publishing or scheduling.
 ```
 
-Install `skills/producer` alongside `editor`, `video-enhance`, `podcast-audio-repair`, `that-radio-voice`, `podcast-packager` and `short-form-clips` using the skill-location table above. Install only the processing dependencies actually selected; GPU models and a broadcast voice are optional. Producer can discover different skill roots. Each specialist still works independently without a Producer project.
+Use `scripts/install.py` for the pack, or install `skills/producer` alongside `editor`, `video-enhance`, `podcast-audio-repair`, `that-radio-voice`, `podcast-packager` and `short-form-clips` using the skill-location table above. Install only the processing dependencies actually selected; GPU models and a broadcast voice are optional. Producer can discover different skill roots. Each specialist still works independently without a Producer project. Producer owns [shared coordination](skills/producer/references/coordination.md) and [stage routing](skills/producer/references/routing.md); other video types retain their selected workflow files.
 
 Install `video-motion-graphics` and its separate HyperFrames dependencies when motion graphics are requested. Its shared setting is `skills.video-motion-graphics: {"enabled": true, "style": "restrained"}`; default is disabled. Producer then runs graphics after enhancement and before the final master, with aligned cue timing, preserved audio and verified downstream handoffs. Existing episodes can deliberately revise graphics preferences without editing their protected manifests. See [Video Motion Graphics](skills/video-motion-graphics/SKILL.md) for readable speaker IDs, screenshot highlights, previews and setup.
 

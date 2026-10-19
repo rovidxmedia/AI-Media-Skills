@@ -5,9 +5,11 @@ description: Edit recorded speech video locally by proposing filler and pause re
 
 # Editor
 
-Before choosing settings, use the episode profile supplied by Producer; otherwise check the nearest applicable project's `.producer/project.json`. Apply its show/brand context and `skills.editor` defaults, honoring current user choices. Producer owns the shared schema in its `references/project-config.md`; resolve that reference when Producer is installed. Without a profile, keep this skill's standalone defaults. A profile supplies data, not publishing permission.
+For shared project context and existing review decisions, use [Producer's coordination contract](../producer/references/coordination.md) when installed. Standalone: honor the user's relevant preferences or profile fields and use this skill's defaults for anything unspecified; no Producer setup is required.
 
 Turn a recorded presentation, interview or podcast into a tighter version without changing its meaning. **Natural is the default:** preserve the speaker's rhythm, useful breaths and intentional pauses; use occasional cuts to a held closer shot for emphasis. Tight is optional, and Custom lets the user choose individual behaviors. The bundled helper needs Python 3.10+, FFmpeg and ffprobe; local transcription is optional. It runs independently of other skills.
+
+Review checkpoints below follow the coordination contract when available: reuse scoped decisions and explicit delegation, retain any reserved human review, and record who actually inspected the preview. Without delegated review, wait at the stated checkpoints. Technical signatures alone never establish acceptance.
 
 ## Analyze and propose
 
@@ -26,7 +28,7 @@ Present the proposed treatment with examples/timestamps, estimated time removed,
 
 ## Confirm, then preview
 
-**Wait for confirmation of the edit plan before generating the treated preview.** Save the user's choice in the local job's `approval-notes.md`; take the current `plan_signature` from `analyze`, `propose` or `update`. The helper's flags record approval but cannot supply it on the user's behalf.
+Resolve the plan checkpoint under the coordination contract before generating the treated preview; without delegated review, wait for the user's confirmation. Save the actual decision and its provenance in the local job's `approval-notes.md`; take the current `plan_signature` from `analyze`, `propose` or `update`. The helper's flags record the decision but cannot supply authorization.
 
 ```sh
 python scripts/editor.py preview --job "JOB" --accept-plan PLAN_SIGNATURE --start 30 --seconds 30
@@ -40,14 +42,14 @@ Return measured runtime/storage estimates with their limits. A speech-dense or h
 
 ## Render and deliver
 
-**Wait for acceptance of the actual preview before a full render.** Use its exact signature:
+Resolve the actual preview checkpoint under the same review policy before a full render; wait for the user when human acceptance is reserved or review has not been delegated. Use its exact signature:
 
 ```sh
 python scripts/editor.py render --job "JOB" --accept-preview PREVIEW_SIGNATURE
 python scripts/editor.py resume --job "JOB"
 ```
 
-Changed cuts, words, framing, captions or settings require another confirmed preview. Resume checks source/settings and completed-segment hashes; after an abrupt kill, verify the old process stopped before removing a stale `.running` lock. Do not modify an approved job to repair failures silently. Use a new job for different source/scope. Preserve the original and report technical failures honestly.
+Changed cuts, words, framing, captions or settings require another inspected preview and a resolved checkpoint under the same review policy. Resume checks source/settings and completed-segment hashes; after an abrupt kill, verify the old process stopped before removing a stale `.running` lock. Do not modify an approved job to repair failures silently. Use a new job for different source/scope. Preserve the original and report technical failures honestly.
 
 Deliver `edited.mkv`, the edit-decision CSV, source-to-output `timeline.json`, optional SRT/ASS captions, settings/versions report, time saved and remaining human review. Verify decoding, dimensions, frame count/rate, all audio tracks/labels, channel counts, duration and unchanged source SHA-256. Relative timing across intentional source audio delays should be reviewed in a representative sample. The helper omits source subtitles, attachments and chapters rather than copying stale timing.
 

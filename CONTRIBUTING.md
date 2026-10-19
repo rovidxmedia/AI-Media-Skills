@@ -64,3 +64,9 @@ For Video Motion Graphics, run `python -m unittest discover -s tests -p "test_mo
 Run `python -m unittest discover -s tests -p "test_publishing.py" -v` with Python and FFmpeg/ffprobe (libx264, libmp3lame, AAC and libass/subtitles). These tests generate their own source fixtures and need no model/network. They exercise packaging, audio-only video, multitrack selection, captions, portrait layouts, fractional rates, invalid imports, storage failures, interrupted resume and hash receipts. Run the full existing suite before submitting. Keep semantic-selection judgments, speech/visual review and actual ASR/image-engine validation separate from these technical checks. Do not commit private episode text, media, job reports or output assets.
 
 For Producer, run `python -m unittest discover -s tests -p "test_producer.py" -v` with standard-library Python 3.10+. Generated files and simulated publisher readbacks exercise first-run setup, shared profiles, machine separation, lineage, final transcript binding, review records, exact account/schedule checks and uncertain retry handling. These are orchestration checks, not real media or live-upload tests. Maintain the shared profile schema in Producer; specialist skills only route to the applicable profile. Keep real project profiles, credentials, machine inventories and release receipts outside public commits.
+
+## Portable pack changes
+
+Run `python -m unittest discover -s tests -p "test_install.py" -v` after installer, packaging or profile changes. These checks copy to a temporary project with spaces/non-ASCII paths, preserve conflicts, verify assets/licenses, exercise installed helpers and configure a fictional show without publishing.
+
+Keep the installer standard-library-only and free of network, shell-profile changes, package installs and media processing. Keep private installations, junctions and machine inventories out of Git. Optional skills must not become undisclosed requirements of the base pack.

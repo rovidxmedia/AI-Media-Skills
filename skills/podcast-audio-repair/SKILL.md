@@ -5,7 +5,7 @@ description: Repair recorded podcast speech locally, correct low or uneven level
 
 # Podcast Audio Repair
 
-Before choosing settings, use the episode profile supplied by Producer; otherwise check the nearest applicable project's `.producer/project.json`. Apply its show/brand context and `skills.podcast-audio-repair` defaults, honoring current user choices. Producer owns the shared schema in its `references/project-config.md`; resolve that reference when Producer is installed. Without a profile, keep this skill's standalone defaults. A profile supplies data, not publishing permission.
+For shared project context and existing review decisions, use [Producer's coordination contract](../producer/references/coordination.md) when installed. Standalone: honor the user's relevant preferences or profile fields and use this skill's defaults for anything unspecified; no Producer setup is required.
 
 Use local processing to produce a reviewable speech repair. Keep the user's desired voice, timing, channels, and editorial content. Completion requires real output files and measurements; a success message does not establish good sound.
 
@@ -37,7 +37,7 @@ Use `--loudness-mode preserve` when the user wants the original dynamics retaine
 
 Deliver both `comparison-actual-volume.mp3` (original and export at their actual levels) and `comparison.mp3` (constant-gain matched for noise and vocal quality). Label their order and purpose; a matched preview deliberately hides most of the volume improvement. Listen to both or have the user review them when audio perception is unavailable. Check words, quiet speech, breaths, overlap, pauses, and naturalness. Provide a specific adjustment if needed. Report technical success and listening approval separately. Do not invent a listening verdict, intelligibility score, or before/after result.
 
-Before calling this reusable on new material, exercise the saved procedure on a different clip. Preserve failed attempts as evidence while producing a clearly identified final candidate. No universal preset or guarantee follows from a successful sample.
+When revising the reusable helper or processing procedure, verify the change on a different clip before relying on it. Preserve failed attempts as evidence while producing a clearly identified final candidate. No universal preset or guarantee follows from a successful sample.
 
 ## Environment and delivery
 

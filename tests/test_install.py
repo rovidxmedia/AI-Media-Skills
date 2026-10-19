@@ -17,7 +17,7 @@ spec.loader.exec_module(installer)
 class InstallTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='media install space é ')
-        self.base = Path(self.temp.name)
+        self.base = Path(self.temp.name).resolve()
         self.project = self.base / 'fictional show 世界'
         self.skills = self.project / '.agents/skills'
 
@@ -82,6 +82,18 @@ class InstallTests(unittest.TestCase):
             installer.install(self.skills)
         self.assertTrue(outside.is_dir())
         self.assertFalse((self.skills/'editor').exists())
+
+    def test_project_alias_installs_into_the_same_physical_project(self):
+        self.project.mkdir(parents=True)
+        alias = self.base / 'project alias'
+        try:
+            alias.symlink_to(self.project, target_is_directory=True)
+        except OSError:
+            self.skipTest('Creating symbolic links is unavailable for this account')
+        target = installer.destination('codex', project=alias)
+        installer.install(target, ['podcast-packager'])
+        self.assertEqual(target.resolve(), self.skills.resolve())
+        self.assertTrue((self.skills / 'podcast-packager/SKILL.md').is_file())
 
     def test_scope_uses_requested_project_user_or_explicit_directory(self):
         self.assertEqual(installer.destination('codex',self.project),self.project/'.agents/skills')
